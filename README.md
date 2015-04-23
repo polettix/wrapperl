@@ -96,7 +96,7 @@ Copyright (c) 2015, Flavio Poletti `polettix@cpan.org`.
 
 This module is free software.  You can redistribute it and/or
 modify it under the terms of the Artistic License 2.0. Please read
-the full license in the [LICENSE](https://metacpan.org/pod/LICENSE) file inside the distribution,
+the full license in the `LICENSE` file inside the distribution,
 as you can find at [https://github.com/polettix/wrapperl](https://github.com/polettix/wrapperl).
 
 This program is distributed in the hope that it will be useful,

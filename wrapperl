@@ -163,7 +163,7 @@ Copyright (c) 2015, Flavio Poletti C<polettix@cpan.org>.
 
 This module is free software.  You can redistribute it and/or
 modify it under the terms of the Artistic License 2.0. Please read
-the full license in the L<LICENSE> file inside the distribution,
+the full license in the F<LICENSE> file inside the distribution,
 as you can find at L<https://github.com/polettix/wrapperl>.
 
 This program is distributed in the hope that it will be useful,
