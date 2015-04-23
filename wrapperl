@@ -9,9 +9,18 @@ use File::Spec::Functions qw<
   catpath
   file_name_is_absolute
 >;
+use Cwd qw< realpath >;
+use Pod::Usage qw< pod2usage >;
+my $VERSION = '0.01';
 
 my $me = $0;
 $me = rel2abs($me) unless file_name_is_absolute($me);
+
+# Check if invoked directly
+my $realme = realpath($me);
+pod2usage(-verbose => 2) if $realme eq $me;
+
+# OK, we're being used for real
 my $target = "$me.pl";
 my ($volume, $directories) = splitpath($me);
 my @path = splitdir($directories);
@@ -26,12 +35,139 @@ while (@path) {
 } ## end while (@path)
 die "could not find wrapperl.env\n" unless defined $envfile;
 
-my $variables = do $envfile;
+my $perl = do $envfile;
+die "reading $envfile failed\n" unless defined $perl;
 
-$ENV{PERL5LIB} =
-  defined($variables->{PERL5LIB})
-  ? $variables->{PERL5LIB}
-  : '';
-
-my @command = ($variables->{PERL}, $target, @ARGV);
+my @command = ($perl, $target, @ARGV);
 exec {$command[0]} @command;
+
+die "failed execution of @command\n";
+
+__END__
+
+=pod
+
+=encoding utf-8
+
+=head1 NAME
+
+wrapperl - simple wrapper system for Perl
+
+=head1 SYNOPSYS
+
+   # the "real" Perl program goes into somename.pl
+   $ vi somename.pl # and put your stuff inside
+
+   # the "wrapper" is a symlink to wrapperl, named somename
+   # in same directory as somename.pl
+   $ ln -s /path/to/wrapperl somename
+
+   # the configuration is put in a wrapperl.env file, which is
+   # actually a Perl file with a configuration inside. It is put
+   # in the same directory or any ancestor as somename.pl/somename
+   $ cat wrapperl.env
+   {
+      PERL => '/usr/bin/perl',
+      PERL5LIB => '',
+   }
+
+=head1 DESCRIPTION
+
+This program lets you wrap a perl program with some local-specific
+configurations.
+
+Using it is simple and has three steps:
+
+=over
+
+=item 1.
+
+you assign your program a name that ends in C<.pl>, e.g. C<somename.pl>;
+
+=item 2.
+
+you create a symbolic link to C<wrapperl> inside the same directory
+as your program, and name the symbolic link the same as the program
+but without the C<.pl> extension, e.g. C<somename>;
+
+=item  3.
+
+you create a small Perl program called C<wrapperl.env> located inside the
+same directory as the main program, or any of its ancestors (the first
+that is found while backtracking is used).
+
+=back
+
+This small program in the third step is supposed
+to set the needed environment variables, like C<$ENV{PERL5LIB}>, and also
+return the path to the C<perl> program to use for invoking the program
+in the modified environment. If you want to reuse the same C<perl>, just
+use C<$^X> as the last statement in your C<wrapperl.env> file, otherwise
+put a string with the desired path.
+
+This is really it! Now you can call the symbolic link created in step
+2, and the real program in step 1 will be called actually, in the modified
+environment and with the C<perl> you set inside the C<wrapperl.env> file.
+
+=head1 OPTIONS
+
+This program really has no options. It is supposed to be called only
+through a symbolic link, when you try to call it directly it will
+show you this documentation.
+
+=head1 DIAGNOSTICS
+
+=over
+
+=item C<< could not find wrapperl.env >>
+
+C<wrapperl> tried to find C<wrapperl.env> in the same directory as
+the symbolic link to it, or in any ancestor directory, but failed to
+find one.
+
+=item C<< reading %s failed >>
+
+the C<wrapperl.env> file that was found cannot be read properly. The
+error message indicates the path to the troublesome file.
+
+=item C<< failed execution of %s >>
+
+C<wrapperl> tried to execute the command (reported in the error message)
+but failed.
+
+=back
+
+=head1 CONFIGURATION AND ENVIRONMENT
+
+C<wrapperl> does not have a configuration per-se, but is of course
+relying on the presence of a C<wrapperl.env> file for proper
+functioning - see L</DESCRIPTION>.
+
+=head1 DEPENDENCIES
+
+C<wrapperl> relies on modules that are part of any standard Perl
+distribution as of release 5.6.0.
+
+=head1 BUGS AND LIMITATIONS
+
+Please report bugs and hopefully solutions through the GitHub
+repository at L<https://github.com/polettix/wrapperl>.
+
+=head1 AUTHOR
+
+Flavio Poletti <polettix@cpan.org>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright (c) 2015, Flavio Poletti C<polettix@cpan.org>.
+
+This module is free software.  You can redistribute it and/or
+modify it under the terms of the Artistic License 2.0. Please read
+the full license in the L<LICENSE> file inside the distribution,
+as you can find at L<https://github.com/polettix/wrapperl>.
+
+This program is distributed in the hope that it will be useful,
+but without any warranty; without even the implied warranty of
+merchantability or fitness for a particular purpose.
+
+=cut
