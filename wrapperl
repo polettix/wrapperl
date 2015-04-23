@@ -1,0 +1,37 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use File::Spec::Functions qw<
+  rel2abs
+  splitpath
+  splitdir
+  catdir
+  catpath
+  file_name_is_absolute
+>;
+
+my $me = $0;
+$me = rel2abs($me) unless file_name_is_absolute($me);
+my $target = "$me.pl";
+my ($volume, $directories) = splitpath($me);
+my @path = splitdir($directories);
+my $envfile;
+while (@path) {
+   my $candidate = catpath($volume, catdir(@path), 'wrapperl.env');
+   if (-e $candidate) {
+      $envfile = $candidate;
+      last;
+   }
+   pop @path;
+} ## end while (@path)
+die "could not find wrapperl.env\n" unless defined $envfile;
+
+my $variables = do $envfile;
+
+$ENV{PERL5LIB} =
+  defined($variables->{PERL5LIB})
+  ? $variables->{PERL5LIB}
+  : '';
+
+my @command = ($variables->{PERL}, $target, @ARGV);
+exec {$command[0]} @command;
