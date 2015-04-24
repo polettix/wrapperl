@@ -12,33 +12,43 @@ use File::Spec::Functions qw<
 use Cwd qw< getcwd realpath >;
 use Pod::Usage qw< pod2usage >;
 my $VERSION = '0.02';
+our $SUFFIX = '.pl';
 
-my $me = absolute($0);
+our $ME = absolute($0);
 
-# is this "$me" special, i.e. is it 'wrapperl' or 'wrapperldoc'?
-my (undef, undef, $basename) = splitpath($me);
-my $is_special = ($basename =~ m{\A wrapperl (?: doc )? \z}mxs);
+my @alternatives = (
+   [
+      qr{(?mxs: \A wrapperl \z)},
+      \&action_wrapperl
+   ],
+   [
+      qr{(?mxs: \A perl \z)},
+      \&action_perl
+   ],
+   [
+      qr{(?mxs: \A perldoc \z)},
+      \&action_perldoc
+   ],
+   [
+      qr{.}, \&action_default
+   ],
+);
 
-# find and execute wrapperl.env, which will return path to real perl
-my $envfile = find_envfile($is_special ? getcwd() : $me);
-my $perl = do $envfile
-   or die "reading $envfile failed\n"; # "0" is not acceptable :)
-
-# the command to execute will start with this $perl
-my @command = ($perl);
-
-# Establish real target, "wrapperldoc" is treated specially
-if (! $is_special) {
-   push @command, "$me.pl";
+my (undef, undef, $basename) = splitpath($ME);
+for my $candidate (@alternatives) {
+   my ($match, $callback) = @$candidate;
+   next unless $basename =~ m{$match};
+   $callback->();
 }
-elsif ($basename eq 'wrapperldoc') {
-   my ($v, $d) = splitpath($perl);
-   push @command, catpath($v, $d, 'perldoc');
+
+die "something went really wrong\n";
+
+sub load_envfile {
+   my ($envfile) = @_;
+   my $retval = do $envfile
+      or die "errors loading '$envfile'\n";
+   return $retval;
 }
-
-exec {$command[0]} @command, @ARGV;
-
-die "failed execution of @command\n";
 
 sub find_envfile {
    my ($start) = @_;
@@ -60,6 +70,41 @@ sub absolute {
    return rel2abs($path);
 }
 
+sub envfile_cwd_or_home {
+   return eval { find_envfile(getcwd()) }
+      || find_envfile($ENV{HOME});
+}
+
+sub myexec {
+   my @command = @_;
+   exec {$command[0]} @command;
+   die "failed execution of @command\n";
+}
+
+sub action_wrapperl {
+   my $envfile = @ARGV ? find_envfile(@ARGV) : envfile_cwd_or_home();
+   print {*STDOUT} "$envfile\n";
+   exit 0;
+}
+
+sub action_perl {
+   my $perl = load_envfile(envfile_cwd_or_home());
+   myexec($perl, @ARGV);
+}
+
+sub action_perldoc {
+   my $perl = load_envfile(envfile_cwd_or_home());
+   my ($v, $d) = splitpath($perl);
+   my (undef, undef, $basename) = splitpath($ME);
+   my $perldoc = catpath($v, $d, $basename);
+   myexec($perl, $perldoc, @ARGV);
+}
+
+sub action_default {
+   my $perl = load_envfile(find_envfile($ME));
+   my $target = "$ME$SUFFIX";
+   myexec($perl, $target, @ARGV);
+}
 
 __END__
 
@@ -84,10 +129,8 @@ wrapperl - simple wrapper system for Perl
    # actually a Perl file with a configuration inside. It is put
    # in the same directory or any ancestor as somename.pl/somename
    $ cat wrapperl.env
-   {
-      PERL => '/usr/bin/perl',
-      PERL5LIB => '',
-   }
+   $ENV{PERL5LIB} = '';
+   '/path/to/perl';
 
 =head1 DESCRIPTION
 
@@ -129,16 +172,67 @@ This is really it! Now you can call the symbolic link created in step
 2, and the real program in step 1 will be called actually, in the modified
 environment and with the C<perl> you set inside the C<wrapperl.env> file.
 
-=head2 Special Or No Links
+=head2 Special Names
 
-If the links you create are called either C<wrapperl> or C<wrapperldoc>,
-or you invoke the script directly, a special behaviour will be triggered.
+As it should be evident at this point, this program acts depending on
+the name it is called with. While in general the behaviour is what
+has been described in the previous section, there are some names that
+are treated in a special way:
 
-In particular, C<wrapperl> will look for a C<wrapperl.env> file
-I<starting from the current directory>, and call the relevant program
-(i.e. either C<perl> or C<perldoc>). This is supposed to be an easy
-shortcut to let you call "the right program" among these two useful
-ones.
+=over
+
+=item B<< wrapperl >>
+
+when invoked directly (or anyway through a symlink called C<wrapperl>),
+the program will show what environment file C<wrapperl.env> is used. You
+can pass a path to set the starting point for the research of the file,
+otherwise it will start from the current working directory and in case
+of absence from the home directory.
+
+=item B<< perl >>
+
+this name makes C<wrapperl> transform into a call to the C<perl> indicated
+by the C<wrapperl.env> file, with all following command line options.
+
+=item B<< perldoc >>
+
+this name calls the C<perldoc> program located in the same directory
+as the loaded C<perl>, with following parameters.
+
+=back
+
+This means that you can symlink with name C<perl> and get a way to
+invoke C<perl> with the right parameters set in the C<wrapperl.env>
+file.
+
+=head2 C<wrapperl.env>
+
+The C<wrapperl.env> file is executed via a C<do>, so you are warned
+about any possible security issue.
+
+You can of course do whatever you want in this file, including the
+modification of the relevant variables:
+
+=over
+
+=over C<$ME>
+
+this is the absolute path to the invoked program (most probably, a
+symlink to C<wrapperl>). In case of "regular" invocation, i.e. through
+a name that is not special, the real target is derived as
+C<$ME$SUFFIX>, so if you modify either one you can influence which
+target name to use.
+
+In case of C<perldoc>, C<$ME> is used to find the last part (i.e.
+the I<basename>) and is then used B<without> the C<$SUFFIX>.
+
+=over C<$SUFFIX>
+
+this is a suffix appended to the invoked name C<$ME> to find the real
+Perl program to start. Defaults to C<.pl>.
+
+=back
+
 
 =head1 OPTIONS
 
