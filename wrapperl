@@ -215,7 +215,7 @@ modification of the relevant variables:
 
 =over
 
-=over C<$ME>
+=item C<$ME>
 
 this is the absolute path to the invoked program (most probably, a
 symlink to C<wrapperl>). In case of "regular" invocation, i.e. through
@@ -226,7 +226,7 @@ target name to use.
 In case of C<perldoc>, C<$ME> is used to find the last part (i.e.
 the I<basename>) and is then used B<without> the C<$SUFFIX>.
 
-=over C<$SUFFIX>
+=item C<$SUFFIX>
 
 this is a suffix appended to the invoked name C<$ME> to find the real
 Perl program to start. Defaults to C<.pl>.
