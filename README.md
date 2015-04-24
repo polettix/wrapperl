@@ -15,15 +15,15 @@ wrapperl - simple wrapper system for Perl
     # actually a Perl file with a configuration inside. It is put
     # in the same directory or any ancestor as somename.pl/somename
     $ cat wrapperl.env
-    {
-       PERL => '/usr/bin/perl',
-       PERL5LIB => '',
-    }
+    $ENV{PERL5LIB} = '';
+    '/path/to/perl';
 
 # DESCRIPTION
 
 This program lets you wrap a perl program with some local-specific
 configurations.
+
+## Normal Usage
 
 Using it is simple and has three steps:
 
@@ -46,11 +46,62 @@ This is really it! Now you can call the symbolic link created in step
 2, and the real program in step 1 will be called actually, in the modified
 environment and with the `perl` you set inside the `wrapperl.env` file.
 
+## Special Names
+
+As it should be evident at this point, this program acts depending on
+the name it is called with. While in general the behaviour is what
+has been described in the previous section, there are some names that
+are treated in a special way:
+
+- **wrapperl**
+
+    when invoked directly (or anyway through a symlink called `wrapperl`),
+    the program will show what environment file `wrapperl.env` is used. You
+    can pass a path to set the starting point for the research of the file,
+    otherwise it will start from the current working directory and in case
+    of absence from the home directory.
+
+- **perl**
+
+    this name makes `wrapperl` transform into a call to the `perl` indicated
+    by the `wrapperl.env` file, with all following command line options.
+
+- **perldoc**
+
+    this name calls the `perldoc` program located in the same directory
+    as the loaded `perl`, with following parameters.
+
+This means that you can symlink with name `perl` and get a way to
+invoke `perl` with the right parameters set in the `wrapperl.env`
+file.
+
+## `wrapperl.env`
+
+The `wrapperl.env` file is executed via a `do`, so you are warned
+about any possible security issue.
+
+You can of course do whatever you want in this file, including the
+modification of the relevant variables:
+
+- `$ME`
+
+    this is the absolute path to the invoked program (most probably, a
+    symlink to `wrapperl`). In case of "regular" invocation, i.e. through
+    a name that is not special, the real target is derived as
+    `$ME$SUFFIX`, so if you modify either one you can influence which
+    target name to use.
+
+    In case of `perldoc`, `$ME` is used to find the last part (i.e.
+    the _basename_) and is then used **without** the `$SUFFIX`.
+
+- `$SUFFIX`
+
+    this is a suffix appended to the invoked name `$ME` to find the real
+    Perl program to start. Defaults to `.pl`.
+
 # OPTIONS
 
-This program really has no options. It is supposed to be called only
-through a symbolic link, when you try to call it directly it will
-show you this documentation.
+This program really has no options.
 
 # DIAGNOSTICS
 
