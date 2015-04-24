@@ -9,39 +9,57 @@ use File::Spec::Functions qw<
   catpath
   file_name_is_absolute
 >;
-use Cwd qw< realpath >;
+use Cwd qw< getcwd realpath >;
 use Pod::Usage qw< pod2usage >;
-my $VERSION = '0.01';
+my $VERSION = '0.02';
 
-my $me = $0;
-$me = rel2abs($me) unless file_name_is_absolute($me);
+my $me = absolute($0);
 
-# Check if invoked directly
-my $realme = realpath($me);
-pod2usage(-verbose => 2) if $realme eq $me;
+# is this "$me" special, i.e. is it 'wrapperl' or 'wrapperldoc'?
+my (undef, undef, $basename) = splitpath($me);
+my $is_special = ($basename =~ m{\A wrapperl (?: doc )? \z}mxs);
 
-# OK, we're being used for real
-my $target = "$me.pl";
-my ($volume, $directories) = splitpath($me);
-my @path = splitdir($directories);
-my $envfile;
-while (@path) {
-   my $candidate = catpath($volume, catdir(@path), 'wrapperl.env');
-   if (-e $candidate) {
-      $envfile = $candidate;
-      last;
-   }
-   pop @path;
-} ## end while (@path)
-die "could not find wrapperl.env\n" unless defined $envfile;
+# find and execute wrapperl.env, which will return path to real perl
+my $envfile = find_envfile($is_special ? getcwd() : $me);
+my $perl = do $envfile
+   or die "reading $envfile failed\n"; # "0" is not acceptable :)
 
-my $perl = do $envfile;
-die "reading $envfile failed\n" unless defined $perl;
+# the command to execute will start with this $perl
+my @command = ($perl);
 
-my @command = ($perl, $target, @ARGV);
-exec {$command[0]} @command;
+# Establish real target, "wrapperldoc" is treated specially
+if (! $is_special) {
+   push @command, "$me.pl";
+}
+elsif ($basename eq 'wrapperldoc') {
+   my ($v, $d) = splitpath($perl);
+   push @command, catpath($v, $d, 'perldoc');
+}
+
+exec {$command[0]} @command, @ARGV;
 
 die "failed execution of @command\n";
+
+sub find_envfile {
+   my ($start) = @_;
+   my ($volume, $directories) = splitpath($start, -d $start);
+   my @path = splitdir($directories);
+   my $envfile;
+   while (@path) {
+      my $candidate = catpath($volume, catdir(@path), 'wrapperl.env');
+      return $candidate if -e $candidate;
+      pop @path;
+   } ## end while (@path)
+   die "could not find wrapperl.env\n" unless defined $envfile;
+   return; # never reached
+}
+
+sub absolute {
+   my ($path) = @_;
+   return $path if file_name_is_absolute($path);
+   return rel2abs($path);
+}
+
 
 __END__
 
@@ -76,6 +94,8 @@ wrapperl - simple wrapper system for Perl
 This program lets you wrap a perl program with some local-specific
 configurations.
 
+=head2 Normal Usage
+
 Using it is simple and has three steps:
 
 =over
@@ -109,11 +129,20 @@ This is really it! Now you can call the symbolic link created in step
 2, and the real program in step 1 will be called actually, in the modified
 environment and with the C<perl> you set inside the C<wrapperl.env> file.
 
+=head2 Special Or No Links
+
+If the links you create are called either C<wrapperl> or C<wrapperldoc>,
+or you invoke the script directly, a special behaviour will be triggered.
+
+In particular, C<wrapperl> will look for a C<wrapperl.env> file
+I<starting from the current directory>, and call the relevant program
+(i.e. either C<perl> or C<perldoc>). This is supposed to be an easy
+shortcut to let you call "the right program" among these two useful
+ones.
+
 =head1 OPTIONS
 
-This program really has no options. It is supposed to be called only
-through a symbolic link, when you try to call it directly it will
-show you this documentation.
+This program really has no options.
 
 =head1 DIAGNOSTICS
 
