@@ -215,8 +215,8 @@ configurations, and changing those configurations possibly in many
 little Perl programs quickly becomes an error-prone hassle.
 
 `wrapperl` provides you with a consistent, minimal and easy to setup
-way to concentrate local-specific configurations in one single
-file `wrapperl.env` (["The `wrapperl.env` File"](#the-wrapperl-env-file)), and be sure
+way to concentrate local-specific configurations in the
+["The `wrapperl.env` File"](#the-wrapperl-env-file), and be sure
 that you will call your Perl program(s) with the right setup every time.
 
 `wrapperl`'s behaviour strongly depends on its name. That is, if
@@ -231,8 +231,7 @@ get the benefits described below.
 The following sections start by describing the `wrapperl.env` file
 you should set up, then describe the behaviour in the different
 conditions; among them, most probably you will be interested into
-["Named Something Else"](#named-something-else). But first, something to set you to work
-quickly.
+["Named Something Else"](#named-something-else).
 
 ## The `wrapperl.env` File
 
@@ -244,7 +243,7 @@ your configurations.
 The file is a standard Perl program. It will be called using whatever
 _default_ perl is found, that is not what you are looking for most
 probably (otherwise you would probably not be using `wrapperl` at
-all). You can do whatever setting inside it, e.g. most probably you
+all). You can do whatever setting inside it, while most probably you
 will be interested in setting the environment variable `PERL5LIB`
 to point towards the library directories you want to include in
 `@INC`.
@@ -295,7 +294,8 @@ variables in package `main`:
     on `$ME` and set `$SUFFIX` to the empty string in order to
     select the _real_ program to call.
 
-    By default, `$SUFFIX` is set to `.pl`.
+    By default, `$SUFFIX` is set to `.pl` and you should not need
+    to change it.
 
 ### Loading
 
@@ -326,7 +326,7 @@ paths will be searched for `wrapperl.env`:
 An exception is thrown if no `wrapperl.env` file is found during the
 search in all the starting points.
 
-The standard resolution of the `wrapperl.env` file is performed starting
+The _standard resolution_ of the `wrapperl.env` file is performed starting
 from the current working directory, then from the user's home directory as
 read from the `HOME` environment variable.
 
@@ -344,7 +344,7 @@ options (see ["OPTIONS"](#options)).
 Unless otherwise noted, the resolution of the `wrapperl.env` file
 is the _standard_ one as described in section ["Position"](#position).
 
-If none of the options in ["OPTIONS"](#options) is recognised, the selected
+If none of the options in ["OPTIONS"](#options) is recognized, the selected
 perl in `$PERL` is invoked with whatever argument list is provided. This
 is equivalent to using the `-x|--exec` option, except of course that the
 first option is not stripped away in this case.

@@ -392,8 +392,8 @@ configurations, and changing those configurations possibly in many
 little Perl programs quickly becomes an error-prone hassle.
 
 C<wrapperl> provides you with a consistent, minimal and easy to setup
-way to concentrate local-specific configurations in one single
-file C<wrapperl.env> (L<< The C<wrapperl.env> File >>), and be sure
+way to concentrate local-specific configurations in the
+L<< The C<wrapperl.env> File >>, and be sure
 that you will call your Perl program(s) with the right setup every time.
 
 C<wrapperl>'s behaviour strongly depends on its name. That is, if
@@ -408,9 +408,7 @@ get the benefits described below.
 The following sections start by describing the C<wrapperl.env> file
 you should set up, then describe the behaviour in the different
 conditions; among them, most probably you will be interested into
-L</Named Something Else>. But first, something to set you to work
-quickly.
-
+L</Named Something Else>.
 
 =head2 The C<wrapperl.env> File
 
@@ -422,7 +420,7 @@ your configurations.
 The file is a standard Perl program. It will be called using whatever
 I<default> perl is found, that is not what you are looking for most
 probably (otherwise you would probably not be using C<wrapperl> at
-all). You can do whatever setting inside it, e.g. most probably you
+all). You can do whatever setting inside it, while most probably you
 will be interested in setting the environment variable C<PERL5LIB>
 to point towards the library directories you want to include in
 C<@INC>.
@@ -475,7 +473,8 @@ I<executables>), then you can do your transformations directly
 on C<$ME> and set C<$SUFFIX> to the empty string in order to
 select the I<real> program to call.
 
-By default, C<$SUFFIX> is set to C<.pl>.
+By default, C<$SUFFIX> is set to C<.pl> and you should not need
+to change it.
 
 =back
 
@@ -508,7 +507,7 @@ paths will be searched for C<wrapperl.env>:
 An exception is thrown if no C<wrapperl.env> file is found during the
 search in all the starting points.
 
-The standard resolution of the C<wrapperl.env> file is performed starting
+The I<standard resolution> of the C<wrapperl.env> file is performed starting
 from the current working directory, then from the user's home directory as
 read from the C<HOME> environment variable.
 
@@ -526,7 +525,7 @@ options (see L</OPTIONS>).
 Unless otherwise noted, the resolution of the C<wrapperl.env> file
 is the I<standard> one as described in section L</Position>.
 
-If none of the options in L</OPTIONS> is recognised, the selected
+If none of the options in L</OPTIONS> is recognized, the selected
 perl in C<$PERL> is invoked with whatever argument list is provided. This
 is equivalent to using the C<-x|--exec> option, except of course that the
 first option is not stripped away in this case.
