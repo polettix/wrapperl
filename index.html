@@ -13,613 +13,541 @@
    </head>
    <body>
       <div class="markdown-body">
-<h1 id="name">NAME</h1>
+# NAME
 
-<p>wrapperl - wrapper for Perl customized invocation</p>
+wrapperl - wrapper for Perl customized invocation
 
-<h1 id="tldr">TL;DR</h1>
+# TL;DR
 
-<p>… or an example is worth a whole manual sometimes.</p>
+... or an example is worth a whole manual sometimes.
 
-<p>First of all, download <code>wrapperl</code> from
-<a href="https://raw.githubusercontent.com/polettix/wrapperl/master/wrapperl">https://raw.githubusercontent.com/polettix/wrapperl/master/wrapperl</a>
+First of all, download `wrapperl` from
+[https://raw.githubusercontent.com/polettix/wrapperl/master/wrapperl](https://raw.githubusercontent.com/polettix/wrapperl/master/wrapperl)
 and put somewhere in the environments where you need it. It is not
-necessary to put it in a directory in the <code>PATH</code>, although it is
-suggested in order to access all functionalities.</p>
+necessary to put it in a directory in the `PATH`, although it is
+suggested in order to access all functionalities.
 
-<p>Let’s make a few assumptions:</p>
+Let's make a few assumptions:
 
-<ul>
-  <li>
-    <p>you will write your program <code>prg.pl</code>. If
-you don’t even want to write one, you can copy and paste this:</p>
+- you will write your program `prg.pl`. If
+you don't even want to write one, you can copy and paste this:
 
-    <pre><code>  #!/usr/bin/env perl
-  print "using perl '$^X', \@INC contains:\n";
-  print "- '$_'\n" for @INC;
-</code></pre>
-  </li>
-  <li>you do your coding in a development environment where:
-    <ul>
-      <li>you develop <code>prg.pl</code> inside directory <code>/home/me/program</code></li>
-      <li><code>perl</code> is located at <code>/home/me/perl/bin/perl</code></li>
-      <li>the libraries you need are stored in non-standard positions
-  <code>/path/to/some/lib</code> and <code>/path/to/another/lib</code></li>
-    </ul>
-  </li>
-  <li>you deploy your program in a production environment with a different
+        #!/usr/bin/env perl
+        print "using perl '$^X', \@INC contains:\n";
+        print "- '$_'\n" for @INC;
+
+- you do your coding in a development environment where:
+    - you develop `prg.pl` inside directory `/home/me/program`
+    - `perl` is located at `/home/me/perl/bin/perl`
+    - the libraries you need are stored in non-standard positions
+    `/path/to/some/lib` and `/path/to/another/lib`
+- you deploy your program in a production environment with a different
 setup, namely:
-    <ul>
-      <li>your program <code>prg.pl</code> is deployed in directory <code>/app/program</code></li>
-      <li><code>perl</code> is located at <code>/approved/perl/bin/perl</code></li>
-      <li>the libraries you need are all stored in <code>/approved/lib</code></li>
-    </ul>
-  </li>
-</ul>
+    - your program `prg.pl` is deployed in directory `/app/program`
+    - `perl` is located at `/approved/perl/bin/perl`
+    - the libraries you need are all stored in `/approved/lib`
 
-<p>In both environments, you create a symbolic link named <code>prg</code>
-pointing towards <code>wrapperl</code>. The link is located inside the same
-directory as <code>prg.pl</code>.</p>
+In both environments, you create a symbolic link named `prg`
+pointing towards `wrapperl`. The link is located inside the same
+directory as `prg.pl`.
 
-<p>You create the <code>wrapperl.env</code> file, which will hold configurations
+You create the `wrapperl.env` file, which will hold configurations
 that are specific for the specific environment it is located into.
-In this example we will put it in the same directory as <code>prg</code> and
-<code>prg.pl</code>.</p>
+In this example we will put it in the same directory as `prg` and
+`prg.pl`.
 
-<p>This is what you end up with in the development environment:</p>
+This is what you end up with in the development environment:
 
-<pre><code>me@devhost /home/me/program$ ls -l
-lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -&gt; /home/me/bin/wrapperl
--rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
--rwxr-xr-x 1 me me 90 Apr 22 12:35 wrapperl.env
+    me@devhost /home/me/program$ ls -l
+    lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -> /home/me/bin/wrapperl
+    -rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
+    -rwxr-xr-x 1 me me 90 Apr 22 12:35 wrapperl.env
 
-me@devhost /home/me/program$ cat wrapperl.env
-$ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
-$PERL = '/home/me/perl/bin/perl';
-</code></pre>
+    me@devhost /home/me/program$ cat wrapperl.env
+    $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
+    $PERL = '/home/me/perl/bin/perl';
 
-<p>This is what you have in the production environment:</p>
+This is what you have in the production environment:
 
-<pre><code>me@production /app/program$ ls -l
-lrwxrwxrwx 1 me me  8 Apr 25 20:51 prg -&gt; /usr/local/bin/wrapperl
--rwxr-xr-x 1 me me 74 Apr 25 20:51 prg.pl
--rwxr-xr-x 1 me me 66 Apr 25 20:51 wrapperl.env
+    me@production /app/program$ ls -l
+    lrwxrwxrwx 1 me me  8 Apr 25 20:51 prg -> /usr/local/bin/wrapperl
+    -rwxr-xr-x 1 me me 74 Apr 25 20:51 prg.pl
+    -rwxr-xr-x 1 me me 66 Apr 25 20:51 wrapperl.env
 
-me@production /app/program$ cat wrapperl.env
-$ENV{PERL5LIB} = '/approved/lib';
-$PERL = '/approved/perl/bin/perl';
-</code></pre>
+    me@production /app/program$ cat wrapperl.env
+    $ENV{PERL5LIB} = '/approved/lib';
+    $PERL = '/approved/perl/bin/perl';
 
-<p>So yes, they two setups are mostly the same, except for the contents
-of the <code>wrapperl.env</code> files, each containing configurations that
-are environment-specific.</p>
+So yes, they two setups are mostly the same, except for the contents
+of the `wrapperl.env` files, each containing configurations that
+are environment-specific.
 
-<p>Now, you are ready to run your program in either environment, just
-remember to execute the symbolic link to <code>wrapperl</code> instead of your
-program.</p>
+Now, you are ready to run your program in either environment, just
+remember to execute the symbolic link to `wrapperl` instead of your
+program.
 
-<p>In the development environment:</p>
+In the development environment:
 
-<pre><code>me@devhost /home/me/program$ ./prg
-using perl '/home/me/perl/bin/perl', @INC contains:
-- '/path/to/another/lib/i686-linux'
-- '/path/to/another/lib'
-- '/path/to/some/lib/i686-linux'
-- '/path/to/some/lib'
-- '/home/me/perl/lib/site_perl/5.18.1/i686-linux'
-- '/home/me/perl/lib/site_perl/5.18.1'
-- '/home/me/perl/lib/5.18.1/i686-linux'
-- '/home/me/perl/lib/5.18.1'
-- '.'
-</code></pre>
+    me@devhost /home/me/program$ ./prg
+    using perl '/home/me/perl/bin/perl', @INC contains:
+    - '/path/to/another/lib/i686-linux'
+    - '/path/to/another/lib'
+    - '/path/to/some/lib/i686-linux'
+    - '/path/to/some/lib'
+    - '/home/me/perl/lib/site_perl/5.18.1/i686-linux'
+    - '/home/me/perl/lib/site_perl/5.18.1'
+    - '/home/me/perl/lib/5.18.1/i686-linux'
+    - '/home/me/perl/lib/5.18.1'
+    - '.'
 
-<p>In the production environment:</p>
+In the production environment:
 
-<pre><code>me@production /app/program$ ./prg
-using perl '/approved/perl/bin/perl', @INC contains:
-- '/approved/lib/i686-linux'
-- '/approved/lib'
-- '/approved/perl/lib/site_perl/5.18.1/i686-linux'
-- '/approved/perl/lib/site_perl/5.18.1'
-- '/approved/perl/lib/5.18.1/i686-linux'
-- '/approved/perl/lib/5.18.1'
-- '.'
-</code></pre>
+    me@production /app/program$ ./prg
+    using perl '/approved/perl/bin/perl', @INC contains:
+    - '/approved/lib/i686-linux'
+    - '/approved/lib'
+    - '/approved/perl/lib/site_perl/5.18.1/i686-linux'
+    - '/approved/perl/lib/site_perl/5.18.1'
+    - '/approved/perl/lib/5.18.1/i686-linux'
+    - '/approved/perl/lib/5.18.1'
+    - '.'
 
-<p>That’s all folks!</p>
+That's all folks!
 
-<h1 id="synopsys">SYNOPSYS</h1>
+# SYNOPSYS
 
-<pre><code># Minimal setup: create a "wrapperl.env" file.
-# It is a Perl program to set up the right environment and
-# define the $PERL variable that points to the desired perl
-shell$ cat wrapperl.env
-$ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
-$PERL = '/path/to/bin/perl';
+    # Minimal setup: create a "wrapperl.env" file.
+    # It is a Perl program to set up the right environment and
+    # define the $PERL variable that points to the desired perl
+    shell$ cat wrapperl.env
+    $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
+    $PERL = '/path/to/bin/perl';
 
-# You can have a different "wrapperl.env" on each directory.
-# What is the one that we would see from here? "wrapperl" can
-# tell you this with -e | --env
-shell$ wrapperl -e
-/path/to/wrapperl.env
+    # You can have a different "wrapperl.env" on each directory.
+    # What is the one that we would see from here? "wrapperl" can
+    # tell you this with -e | --env
+    shell$ wrapperl -e
+    /path/to/wrapperl.env
 
-# If you also provide a parameter to -e | --env, it will tell
-# you which environment file will be seen by the provided
-# parameter (that is of course expected to be a path)
-shell$ wrapperl -e /path/to/a/wrapperl/symlink
-/path/to/a/wrapper.env
+    # If you also provide a parameter to -e | --env, it will tell
+    # you which environment file will be seen by the provided
+    # parameter (that is of course expected to be a path)
+    shell$ wrapperl -e /path/to/a/wrapperl/symlink
+    /path/to/a/wrapper.env
 
-# Time to make it work! Option -x | --exec means calling it
-# as if it were the chosen perl with the configurations in
-# "wrapperl.env"
-shell$ wrapperl -x -le 'print $^X'
-/path/to/bin/perl
+    # Time to make it work! Option -x | --exec means calling it
+    # as if it were the chosen perl with the configurations in
+    # "wrapperl.env"
+    shell$ wrapperl -x -le 'print $^X'
+    /path/to/bin/perl
 
-# This is actually the default behaviour if the first parameter
-# is not supported by "wrapperl" directly, so the following calls
-# are equivalent. So, use -x if you need to pass the called perl
-# options -d, -e, -s or -x, otherwise you can avoid it
-shell$ wrapperl -x myprogram.pl --foo bar # OR
-shell$ wrapperl myprogram.pl --foo bar
+    # This is actually the default behaviour if the first parameter
+    # is not supported by "wrapperl" directly, so the following calls
+    # are equivalent. So, use -x if you need to pass the called perl
+    # options -d, -e, -s or -x, otherwise you can avoid it
+    shell$ wrapperl -x myprogram.pl --foo bar # OR
+    shell$ wrapperl myprogram.pl --foo bar
 
-# Option -s | --sibling allows to call programs that are
-# usually shipped with perl, e.g. perlthanks, podchecker, etc.
-shell$ wrapperl -s podchecker myprogram.pl
+    # Option -s | --sibling allows to call programs that are
+    # usually shipped with perl, e.g. perlthanks, podchecker, etc.
+    shell$ wrapperl -s podchecker myprogram.pl
 
-# Another useful option is -d | --doc to call perldoc quickly,
-# so the following ones are equivalent:
-shell$ wrapperl -s perldoc Module::Name
-shell$ wrapperl -d Module::Name
+    # Another useful option is -d | --doc to call perldoc quickly,
+    # so the following ones are equivalent:
+    shell$ wrapperl -s perldoc Module::Name
+    shell$ wrapperl -d Module::Name
 
-# You can symlink wrapperl and it will do some magic.
-# Call the real program a name ending with ".pl" (e.g. "prg.pl")
-# and symlink wrapperl with the same name withouth the extension
-# (e.g. "prg"). This is what will happen:
-shell$ ls -l
--rw-r--r-- 1 me me 74 Apr 23 22:20 wrapperl.env
-lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -&gt; /path/to/wrapperl
--rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
+    # You can symlink wrapperl and it will do some magic.
+    # Call the real program a name ending with ".pl" (e.g. "prg.pl")
+    # and symlink wrapperl with the same name withouth the extension
+    # (e.g. "prg"). This is what will happen:
+    shell$ ls -l
+    -rw-r--r-- 1 me me 74 Apr 23 22:20 wrapperl.env
+    lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -> /path/to/wrapperl
+    -rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
 
-shell$ cat prg.pl
-#!/usr/bin/env perl
-print "using perl '$^X', \@INC contains:\n";
-print "- '$_'\n" for @INC;
+    shell$ cat prg.pl
+    #!/usr/bin/env perl
+    print "using perl '$^X', \@INC contains:\n";
+    print "- '$_'\n" for @INC;
 
-shell$ cat wrapperl.env
-$ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
-$PERL = '/path/to/bin/perl';
+    shell$ cat wrapperl.env
+    $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
+    $PERL = '/path/to/bin/perl';
 
-shell$ which perl
-/usr/bin/perl
+    shell$ which perl
+    /usr/bin/perl
 
-# If you call the program directly, wrapperl is not used of course
-shell$ ./prg.pl
-using perl '/usr/bin/perl', @INC contains:
-- '/etc/perl'
-- '/usr/local/lib/perl/5.14.2'
-- '/usr/local/share/perl/5.14.2'
-- '/usr/lib/perl5'
-- '/usr/share/perl5'
-- '/usr/lib/perl/5.14'
-- '/usr/share/perl/5.14'
-- '/usr/local/lib/site_perl'
-- '.'
+    # If you call the program directly, wrapperl is not used of course
+    shell$ ./prg.pl
+    using perl '/usr/bin/perl', @INC contains:
+    - '/etc/perl'
+    - '/usr/local/lib/perl/5.14.2'
+    - '/usr/local/share/perl/5.14.2'
+    - '/usr/lib/perl5'
+    - '/usr/share/perl5'
+    - '/usr/lib/perl/5.14'
+    - '/usr/share/perl/5.14'
+    - '/usr/local/lib/site_perl'
+    - '.'
 
-# On the other hand, if you call the "prg" symlink to wrapperl,
-# the same program above will be called, but with the perl and
-# options set in "wrapperl.env"
-shell$ ./prg
-using perl '/path/to/bin/perl', @INC contains:
-- '/path/to/another/lib/i686-linux'
-- '/path/to/another/lib'
-- '/path/to/some/lib/i686-linux'
-- '/path/to/some/lib'
-- '/path/to/lib/site_perl/5.18.1/i686-linux'
-- '/path/to/lib/site_perl/5.18.1'
-- '/path/to/lib/5.18.1/i686-linux'
-- '/path/to/lib/5.18.1'
-- '.'
+    # On the other hand, if you call the "prg" symlink to wrapperl,
+    # the same program above will be called, but with the perl and
+    # options set in "wrapperl.env"
+    shell$ ./prg
+    using perl '/path/to/bin/perl', @INC contains:
+    - '/path/to/another/lib/i686-linux'
+    - '/path/to/another/lib'
+    - '/path/to/some/lib/i686-linux'
+    - '/path/to/some/lib'
+    - '/path/to/lib/site_perl/5.18.1/i686-linux'
+    - '/path/to/lib/site_perl/5.18.1'
+    - '/path/to/lib/5.18.1/i686-linux'
+    - '/path/to/lib/5.18.1'
+    - '.'
 
-# There are two symlinks/names that trigger a special behaviour,
-# namely "perl" and "perldoc" that do what you think
-shell$ ls -l
-lrwxrwxrwx 1 me me  8 Apr 23 21:51 perl -&gt; /path/to/wrapperl
-lrwxrwxrwx 1 me me  8 Apr 23 22:46 perldoc -&gt; /path/to/wrapperl
+    # There are two symlinks/names that trigger a special behaviour,
+    # namely "perl" and "perldoc" that do what you think
+    shell$ ls -l
+    lrwxrwxrwx 1 me me  8 Apr 23 21:51 perl -> /path/to/wrapperl
+    lrwxrwxrwx 1 me me  8 Apr 23 22:46 perldoc -> /path/to/wrapperl
 
-# The following two are therefore equivalent (and no, the
-# double "-x" is not an error, because the first is consumed by
-# "wrapperl" and the second one is for the invoked perl)
-shell$ ./perl -x /path/to/my/program.pl
-shell$ wrapperl -x -x /path/to/my/program.pl
+    # The following two are therefore equivalent (and no, the
+    # double "-x" is not an error, because the first is consumed by
+    # "wrapperl" and the second one is for the invoked perl)
+    shell$ ./perl -x /path/to/my/program.pl
+    shell$ wrapperl -x -x /path/to/my/program.pl
 
-# These three are equivalent too
-shell$ ./perldoc My::Module
-shell$ wrapperl -d My::Module
-shell$ wrapperl -s perldoc My::Module
-</code></pre>
+    # These three are equivalent too
+    shell$ ./perldoc My::Module
+    shell$ wrapperl -d My::Module
+    shell$ wrapperl -s perldoc My::Module
 
-<h1 id="description">DESCRIPTION</h1>
+# DESCRIPTION
 
-<p>This program lets you wrap a perl program with some local-specific
-configurations.</p>
+This program lets you wrap a perl program with some local-specific
+configurations.
 
-<p>Why would you do this, e.g. as opposed to modifying the
-<em>hash-bang</em> line or setting <code>PERL5LIB</code>, or calling the perl
+Why would you do this, e.g. as opposed to modifying the
+_hash-bang_ line or setting `PERL5LIB`, or calling the perl
 executable directly? Well, lazyness of course, but also the fact
 that in different environments the same program might need different
 configurations, and changing those configurations possibly in many
-little Perl programs quickly becomes an error-prone hassle.</p>
+little Perl programs quickly becomes an error-prone hassle.
 
-<p><code>wrapperl</code> provides you with a consistent, minimal and easy to setup
+`wrapperl` provides you with a consistent, minimal and easy to setup
 way to concentrate local-specific configurations in the
-<a href="#the-wrapperl-env-file">“The <code>wrapperl.env</code> File”</a>, and be sure
-that you will call your Perl program(s) with the right setup every time.</p>
+["The `wrapperl.env` File"](#the-wrapperl-env-file), and be sure
+that you will call your Perl program(s) with the right setup every time.
 
-<p><code>wrapperl</code>’s behaviour strongly depends on its name. That is, if
-you leave it as <code>wrapperl</code> it behaves in a specific way, while
-if you name it differently then it does something else.</p>
+`wrapperl`'s behaviour strongly depends on its name. That is, if
+you leave it as `wrapperl` it behaves in a specific way, while
+if you name it differently then it does something else.
 
-<p>The easiest (and most robust) way to do the renaming is to use
+The easiest (and most robust) way to do the renaming is to use
 symbolic links, if your filesystem allows you to. Otherwise, nothing
-prevents you from copying <code>wrapperl</code> to whatever name you need and
-get the benefits described below.</p>
+prevents you from copying `wrapperl` to whatever name you need and
+get the benefits described below.
 
-<p>The following sections start by describing the <code>wrapperl.env</code> file
+The following sections start by describing the `wrapperl.env` file
 you should set up, then describe the behaviour in the different
 conditions; among them, most probably you will be interested into
-<a href="#named-something-else">“Named Something Else”</a>.</p>
+["Named Something Else"](#named-something-else).
 
-<h2 id="the-wrapperlenv-file">The <code>wrapperl.env</code> File</h2>
+## The `wrapperl.env` File
 
-<p>The <code>wrapperl.env</code> file is at the heart of the localization of
-your configurations.</p>
+The `wrapperl.env` file is at the heart of the localization of
+your configurations.
 
-<h3 id="contents">Contents</h3>
+### Contents
 
-<p>The file is a standard Perl program. It will be called using whatever
-<em>default</em> perl is found, that is not what you are looking for most
-probably (otherwise you would probably not be using <code>wrapperl</code> at
+The file is a standard Perl program. It will be called using whatever
+_default_ perl is found, that is not what you are looking for most
+probably (otherwise you would probably not be using `wrapperl` at
 all). You can do whatever setting inside it, while most probably you
-will be interested in setting the environment variable <code>PERL5LIB</code>
+will be interested in setting the environment variable `PERL5LIB`
 to point towards the library directories you want to include in
-<code>@INC</code>.</p>
+`@INC`.
 
-<p>You can also affect how <code>wrapperl</code> works by setting the following
-variables in package <code>main</code>:</p>
+You can also affect how `wrapperl` works by setting the following
+variables in package `main`:
 
-<ul>
-  <li>
-    <p><code>$ME</code></p>
+- `$ME`
 
-    <p>the location of the original program invoked. When calling <code>wrapperl</code>
-  with a different name (see <a href="#named-something-else">“Named Something Else”</a>), it is used
-  together with <code>$SUFFIX</code> described below to form the name of the
-  program <code>$ME$SUFFIX</code> that will be called with the new <code>$PERL</code>. In
-  general you should not need to fiddle with this.</p>
-  </li>
-  <li>
-    <p><code>$PERL</code></p>
+    the location of the original program invoked. When calling `wrapperl`
+    with a different name (see ["Named Something Else"](#named-something-else)), it is used
+    together with `$SUFFIX` described below to form the name of the
+    program `$ME$SUFFIX` that will be called with the new `$PERL`. In
+    general you should not need to fiddle with this.
 
-    <p>the path to the perl to use for invoking the other programs.</p>
+- `$PERL`
 
-    <p>By default it is set to the same perl that is executing <code>wrapperl</code>,
-  namely <code>$^X</code>, just in case you need to setup <code>PERL5LIB</code>.</p>
-  </li>
-  <li>
-    <p><code>$PERLDOC</code></p>
+    the path to the perl to use for invoking the other programs.
 
-    <p>The name of the <code>perldoc</code> utility installed along with <code>$PERL</code>.</p>
+    By default it is set to the same perl that is executing `wrapperl`,
+    namely `$^X`, just in case you need to setup `PERL5LIB`.
 
-    <p>By default it is set to <code>perldoc</code>, and you probably do not need
-  to change it.</p>
-  </li>
-  <li>
-    <p><code>$SUFFIX</code></p>
+- `$PERLDOC`
 
-    <p>a suffix that is appended to the name of the invoked program when
-  calling <code>wrapperl</code> with a different name (see
-  <a href="#named-something-else">“Named Something Else”</a>).</p>
+    The name of the `perldoc` utility installed along with `$PERL`.
 
-    <p>The called program will be <code>$ME$SUFFIX</code>, so if <code>$SUFFIX</code> is set
-  to <code>.pl</code>, you are expected to call your <em>real</em> program the same
-  as your symbolic link (or renamed <code>wrapperl</code> program) but with
-  <code>.pl</code> appended. Example:</p>
+    By default it is set to `perldoc`, and you probably do not need
+    to change it.
 
-    <pre><code>  shell$ ls -l
-  lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -&gt; /path/to/wrapperl
-  -rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
-</code></pre>
+- `$SUFFIX`
 
-    <p>If your system is picky about how files should be named (e.g.
-  Windows might put some restrictions to what it considers as
-  <em>executables</em>), then you can do your transformations directly
-  on <code>$ME</code> and set <code>$SUFFIX</code> to the empty string in order to
-  select the <em>real</em> program to call.</p>
+    a suffix that is appended to the name of the invoked program when
+    calling `wrapperl` with a different name (see
+    ["Named Something Else"](#named-something-else)).
 
-    <p>By default, <code>$SUFFIX</code> is set to <code>.pl</code> and you should not need
-  to change it.</p>
-  </li>
-</ul>
+    The called program will be `$ME$SUFFIX`, so if `$SUFFIX` is set
+    to `.pl`, you are expected to call your _real_ program the same
+    as your symbolic link (or renamed `wrapperl` program) but with
+    `.pl` appended. Example:
 
-<h3 id="loading">Loading</h3>
+        shell$ ls -l
+        lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -> /path/to/wrapperl
+        -rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
 
-<p>The <code>wrapperl.env</code> file is loaded via a <code>do</code>, so you are warned
-about any possible security issue.</p>
+    If your system is picky about how files should be named (e.g.
+    Windows might put some restrictions to what it considers as
+    _executables_), then you can do your transformations directly
+    on `$ME` and set `$SUFFIX` to the empty string in order to
+    select the _real_ program to call.
 
-<p>The invocation is supposed to return a true value (in Perl terms),
-otherwise the execution will be stopped.</p>
+    By default, `$SUFFIX` is set to `.pl` and you should not need
+    to change it.
 
-<h3 id="position">Position</h3>
+### Loading
 
-<p>Depending on how <code>wrapperl</code> is called, the <code>wrapperl.env</code> file is
-searched in different locations.</p>
+The `wrapperl.env` file is loaded via a `do`, so you are warned
+about any possible security issue.
 
-<p>One or more
-<em>starting positions</em> will be considered, and used to perform a search
+The invocation is supposed to return a true value (in Perl terms),
+otherwise the execution will be stopped.
+
+### Position
+
+Depending on how `wrapperl` is called, the `wrapperl.env` file is
+searched in different locations.
+
+One or more
+_starting positions_ will be considered, and used to perform a search
 from that position upwards in the filesystem. For example, if the
-starting point is <code>/path/to/some/internal/sub</code>, then the following
-paths will be searched for <code>wrapperl.env</code>:</p>
+starting point is `/path/to/some/internal/sub`, then the following
+paths will be searched for `wrapperl.env`:
 
-<pre><code>/path/to/some/internal/sub
-/path/to/some/internal
-/path/to/some
-/path/to
-/path
-/
-</code></pre>
+    /path/to/some/internal/sub
+    /path/to/some/internal
+    /path/to/some
+    /path/to
+    /path
+    /
 
-<p>An exception is thrown if no <code>wrapperl.env</code> file is found during the
-search in all the starting points.</p>
+An exception is thrown if no `wrapperl.env` file is found during the
+search in all the starting points.
 
-<p>The <em>standard resolution</em> of the <code>wrapperl.env</code> file is performed starting
-from the current working directory, then from the user’s home directory as
-read from the <code>HOME</code> environment variable.</p>
+The _standard resolution_ of the `wrapperl.env` file is performed starting
+from the current working directory, then from the user's home directory as
+read from the `HOME` environment variable.
 
-<p>In some cases, the starting position will be some other specific
-location. For example, when <code>wrapperl</code> is <a href="#named-something-else">“Named Something Else”</a>,
+In some cases, the starting position will be some other specific
+location. For example, when `wrapperl` is ["Named Something Else"](#named-something-else),
 the only starting location will be the path to the link to
-<code>wrapperl</code>, (i.e. what is used to initialize <code>$ME</code>).</p>
+`wrapperl`, (i.e. what is used to initialize `$ME`).
 
-<h2 id="direct-invocation">Direct Invocation</h2>
+## Direct Invocation
 
-<p>Direct invocation of <code>wrapperl</code> (i.e. without changing the name
+Direct invocation of `wrapperl` (i.e. without changing the name
 when calling it) is subject to the processing of some
-options (see <a href="#options">“OPTIONS”</a>).</p>
+options (see ["OPTIONS"](#options)).
 
-<p>Unless otherwise noted, the resolution of the <code>wrapperl.env</code> file
-is the <em>standard</em> one as described in section <a href="#position">“Position”</a>.</p>
+Unless otherwise noted, the resolution of the `wrapperl.env` file
+is the _standard_ one as described in section ["Position"](#position).
 
-<p>If none of the options in <a href="#options">“OPTIONS”</a> is recognized, the selected
-perl in <code>$PERL</code> is invoked with whatever argument list is provided. This
-is equivalent to using the <code>-x|--exec</code> option, except of course that the
-first option is not stripped away in this case.</p>
+If none of the options in ["OPTIONS"](#options) is recognized, the selected
+perl in `$PERL` is invoked with whatever argument list is provided. This
+is equivalent to using the `-x|--exec` option, except of course that the
+first option is not stripped away in this case.
 
-<p>Option <code>-d|--doc</code> helps you call <code>perldoc</code>, or whatever is set in
-<code>$PERLDOC</code>. This will be useful in order to use the <code>perldoc</code> that is
-shipped with the selected <code>$PERL</code>, and more importantly with the same
-options (e.g. <code>PERL5LIB</code>) set in <code>wrapperl.env</code>, so that you will be
-able to find whatever module is installed in your personalized paths.</p>
+Option `-d|--doc` helps you call `perldoc`, or whatever is set in
+`$PERLDOC`. This will be useful in order to use the `perldoc` that is
+shipped with the selected `$PERL`, and more importantly with the same
+options (e.g. `PERL5LIB`) set in `wrapperl.env`, so that you will be
+able to find whatever module is installed in your personalized paths.
 
-<p>Option <code>-e|--env</code> helps you find out what will be the <code>wrapperl.env</code>
+Option `-e|--env` helps you find out what will be the `wrapperl.env`
 used, so that you can double check that it is the one you are expecting
 and its contents. If you also pass a path in the command line, it will
-be used as the starting point for searching <code>wrapperl.env</code>, otherwise
-the standard resolution process is used.</p>
+be used as the starting point for searching `wrapperl.env`, otherwise
+the standard resolution process is used.
 
-<p>Option <code>-s|--sibling</code> allows you to call one of the Perl programs
-that are present in the same directory as <code>$PERL</code>, much in the same
-way as described for <code>perldoc</code> above. For example, if you want to
-check the POD documentation in <code>YourModule.pm</code> using the <code>podchecker</code>
-that is shipped with the perl you indicated in <code>wrapperl.env</code>:</p>
+Option `-s|--sibling` allows you to call one of the Perl programs
+that are present in the same directory as `$PERL`, much in the same
+way as described for `perldoc` above. For example, if you want to
+check the POD documentation in `YourModule.pm` using the `podchecker`
+that is shipped with the perl you indicated in `wrapperl.env`:
 
-<pre><code>shell$ wrapperl -s podchecker
-</code></pre>
+    shell$ wrapperl -s podchecker
 
-<p>Last, option <code>-x|--exec</code> allows you to call <code>$PERL</code> with the options
-set in <code>wrapperl.env</code>. It is mostly unneeded, unless you want to
-use any of the options above for calling <code>$PERL</code>.</p>
+Last, option `-x|--exec` allows you to call `$PERL` with the options
+set in `wrapperl.env`. It is mostly unneeded, unless you want to
+use any of the options above for calling `$PERL`.
 
-<h2 id="named-perl">Named <code>perl</code></h2>
+## Named `perl`
 
-<p>This name makes <code>wrapperl</code> transform into a call to <code>$PERL</code> as
-possibly set by the <code>wrapperl.env</code> file, including any command
+This name makes `wrapperl` transform into a call to `$PERL` as
+possibly set by the `wrapperl.env` file, including any command
 line option provided. The behaviour is the same as calling
-<code>wrapperl</code> with option <code>-x|--exec</code>.</p>
+`wrapperl` with option `-x|--exec`.
 
-<p>The resolution of the <code>wrapperl.env</code> file is performed according to
-the <em>standard resolution</em> process explained in section <a href="#position">“Position”</a>.</p>
+The resolution of the `wrapperl.env` file is performed according to
+the _standard resolution_ process explained in section ["Position"](#position).
 
-<h2 id="named-perldoc">Named <perldoc></perldoc></h2>
+## Named <perldoc>
 
-<p>This name calls the <code>perldoc</code> set in <code>$PERLDOC</code> and located in the
-same directory as <code>$PERL</code>, including any command line option
-provided. The behaviour is the same as calling <code>wrapperl</code> with
-option <code>-d|--doc</code>.</p>
+This name calls the `perldoc` set in `$PERLDOC` and located in the
+same directory as `$PERL`, including any command line option
+provided. The behaviour is the same as calling `wrapperl` with
+option `-d|--doc`.
 
-<p>The resolution of the <code>wrapperl.env</code> file is performed according to
-the <em>standard resolution</em> process explained in section <a href="#position">“Position”</a>.</p>
+The resolution of the `wrapperl.env` file is performed according to
+the _standard resolution_ process explained in section ["Position"](#position).
 
-<h2 id="named-something-else">Named Something Else</h2>
+## Named Something Else
 
-<p>The normal usage is intended to ease wrapping a call to your Perl
+The normal usage is intended to ease wrapping a call to your Perl
 program so that the right perl binary with the right libraries is
-used, without sacrificing simplicity.</p>
+used, without sacrificing simplicity.
 
-<p>Assuming that you have set up your <code>wrapperl.env</code> file (see
-<a href="#the-wrapperl-env-file">“The <code>wrapperl.env</code> File”</a>), you are only two steps away from
-using <code>wrapperl</code> to automate calling your program with the right
-setup:</p>
+Assuming that you have set up your `wrapperl.env` file (see
+["The `wrapperl.env` File"](#the-wrapperl-env-file)), you are only two steps away from
+using `wrapperl` to automate calling your program with the right
+setup:
 
-<ul>
-  <li>
-    <p>you can write your program without worrying about which perl will
+- you can write your program without worrying about which perl will
 be used to call it or where the libraries are installed. Your only
-constraint is to name it ending with <code>$SUFFIX</code> or do some magic
-to <code>$ME</code> in <code>wrapperl.env</code> (see <a href="#contents">“Contents”</a> for details).</p>
+constraint is to name it ending with `$SUFFIX` or do some magic
+to `$ME` in `wrapperl.env` (see ["Contents"](#contents) for details).
 
-    <p>By default, it suffices that you name your program ending with
-  <code>.pl</code>. For example, we will assume that your program is called
-  <code>prg.pl</code>.</p>
-  </li>
-  <li>
-    <p>You set up a copy to <code>wrapperl</code> to be called the same as your
-program, but without the <code>$SUFFIX</code>. In the example, your copy
-would be called <code>prg</code>.</p>
+    By default, it suffices that you name your program ending with
+    `.pl`. For example, we will assume that your program is called
+    `prg.pl`.
 
-    <p>To make the copy you don’t really have to make a copy! A symbolic
-  link is sufficient, if your filesystem supports them.</p>
-  </li>
-</ul>
+- You set up a copy to `wrapperl` to be called the same as your
+program, but without the `$SUFFIX`. In the example, your copy
+would be called `prg`.
 
-<p>This is really it! Now, every time you need to run your program…
-don’t do it, execute the <code>wrapperl</code> copy instead! That is, in the
-example you would call <code>prg</code>, and it would in turn call your
-<code>prg.pl</code> but after reading all the configurations
-in <code>wrapperl.env</code>.</p>
+    To make the copy you don't really have to make a copy! A symbolic
+    link is sufficient, if your filesystem supports them.
 
-<p>See <a href="#tl-dr">“TL;DR”</a> for a complete and commented example.</p>
+This is really it! Now, every time you need to run your program...
+don't do it, execute the `wrapperl` copy instead! That is, in the
+example you would call `prg`, and it would in turn call your
+`prg.pl` but after reading all the configurations
+in `wrapperl.env`.
 
-<h1 id="options">OPTIONS</h1>
+See ["TL;DR"](#tl-dr) for a complete and commented example.
 
-<p>When invoked with name <code>wrapperl</code>, this program supports the following
+# OPTIONS
+
+When invoked with name `wrapperl`, this program supports the following
 options. Note that you can provide one of them as the first option, and
 anyone not appearing here will actually be used for invoking the
-perl indicated in the <code>wrapperl.env</code> file.</p>
+perl indicated in the `wrapperl.env` file.
 
-<p>In all the options below, unless otherwise noted, the
-<em>standard resolution process</em> for searching <code>wrapperl.env</code> is
-used (see <a href="#position">“Position”</a>).</p>
+In all the options below, unless otherwise noted, the
+_standard resolution process_ for searching `wrapperl.env` is
+used (see ["Position"](#position)).
 
-<ul>
-  <li>
-    <table>
-      <tbody>
-        <tr>
-          <td>**-d</td>
-          <td>–doc [arg1 arg2 …]**</td>
-        </tr>
-      </tbody>
-    </table>
+- **-d | --doc \[arg1 arg2 ...\]**
 
-    <p>invoke whatever program is set in the <code>$PERLDOC</code> variable in package
-  <code>main</code> (<code>perldoc</code> by default), using <code>$PERL</code> and the settings inside
-  <code>wrapperl.env</code>.</p>
+    invoke whatever program is set in the `$PERLDOC` variable in package
+    `main` (`perldoc` by default), using `$PERL` and the settings inside
+    `wrapperl.env`.
 
-    <p>The <code>$PERLDOC</code> program is expected to be placed in
-  the same directory as the selected <code>$PERL</code>.</p>
-  </li>
-  <li>
-    <table>
-      <tbody>
-        <tr>
-          <td>**-e</td>
-          <td>–env [path]**</td>
-        </tr>
-      </tbody>
-    </table>
+    The `$PERLDOC` program is expected to be placed in
+    the same directory as the selected `$PERL`.
 
-    <p>print the path to the <code>wrapperl.env</code> file.</p>
+- **-e | --env \[path\]**
 
-    <p>If a <code>path</code> is provided after this option, it is used as a starting
-  location for searching <code>wrapperl.env</code>, otherwise the
-  <em>standard resolution process</em> is used. See <a href="#position">“Position”</a> for additional
-  details.</p>
-  </li>
-  <li>
-    <table>
-      <tbody>
-        <tr>
-          <td>**-s</td>
-          <td>–sibling name [arg1 arg2 …]**</td>
-        </tr>
-      </tbody>
-    </table>
+    print the path to the `wrapperl.env` file.
 
-    <p>invoke a <em>sibling</em> program, i.e. a program that is shipped along
-  with <code>$PERL</code> and is located in the same directory.</p>
+    If a `path` is provided after this option, it is used as a starting
+    location for searching `wrapperl.env`, otherwise the
+    _standard resolution process_ is used. See ["Position"](#position) for additional
+    details.
 
-    <p>The program is run with <code>$PERL</code> and the configurations set inside
-  <code>wrapperl.env</code>. Any argument is provided on the command line is
-  passed along to the sibling program. This will thus work fine
-  when the sibling is a Perl program, but not for binary executables.</p>
-  </li>
-  <li>
-    <table>
-      <tbody>
-        <tr>
-          <td>**-x</td>
-          <td>–exec [arg1 arg2 …]**</td>
-        </tr>
-      </tbody>
-    </table>
+- **-s | --sibling name \[arg1 arg2 ...\]**
 
-    <p>invoke <code>$PERL</code> with the provided arguments, after loading the
-  options in <code>wrapper.env</code>.</p>
-  </li>
-</ul>
+    invoke a _sibling_ program, i.e. a program that is shipped along
+    with `$PERL` and is located in the same directory.
 
-<h1 id="diagnostics">DIAGNOSTICS</h1>
+    The program is run with `$PERL` and the configurations set inside
+    `wrapperl.env`. Any argument is provided on the command line is
+    passed along to the sibling program. This will thus work fine
+    when the sibling is a Perl program, but not for binary executables.
 
-<ul>
-  <li>
-    <p><code>could not find wrapperl.env</code></p>
+- **-x | --exec \[arg1 arg2 ...\]**
 
-    <p><code>wrapperl</code> tried to find <code>wrapperl.env</code> in the same directory as
-  the symbolic link to it, or in any ancestor directory, but failed to
-  find one.</p>
-  </li>
-  <li>
-    <p><code>errors loading '%s'</code></p>
+    invoke `$PERL` with the provided arguments, after loading the
+    options in `wrapper.env`.
 
-    <p>loading the <code>wrapperl.env</code> was not successful, i.e. the invocation
-  via <code>do</code> did not produce a true value. The placeholder provides
-  the location of the offending file.</p>
-  </li>
-  <li>
-    <p><code>failed execution of %s</code></p>
+# DIAGNOSTICS
 
-    <p><code>wrapperl</code> tried to execute the command (reported in the error message)
-  but failed. The placeholder provides the offending command.</p>
-  </li>
-  <li>
-    <p><code>something went really wrong</code></p>
+- `could not find wrapperl.env`
 
-    <p>you shouldn’t ever see this message, if you do it’s a bug!</p>
-  </li>
-</ul>
+    `wrapperl` tried to find `wrapperl.env` in the same directory as
+    the symbolic link to it, or in any ancestor directory, but failed to
+    find one.
 
-<h1 id="configuration-and-environment">CONFIGURATION AND ENVIRONMENT</h1>
+- `errors loading '%s'`
 
-<p><code>wrapperl</code> does not have a configuration per-se, but is of course
-relying on the presence of a <code>wrapperl.env</code> file for proper
-functioning - see <a href="#description">“DESCRIPTION”</a>.</p>
+    loading the `wrapperl.env` was not successful, i.e. the invocation
+    via `do` did not produce a true value. The placeholder provides
+    the location of the offending file.
 
-<h1 id="dependencies">DEPENDENCIES</h1>
+- `failed execution of %s`
 
-<p><code>wrapperl</code> relies on modules that are part of any standard Perl
-distribution as of release 5.6.0.</p>
+    `wrapperl` tried to execute the command (reported in the error message)
+    but failed. The placeholder provides the offending command.
 
-<h1 id="bugs-and-limitations">BUGS AND LIMITATIONS</h1>
+- `something went really wrong`
 
-<p>Please report bugs and hopefully solutions through the GitHub
-repository at <a href="https://github.com/polettix/wrapperl">https://github.com/polettix/wrapperl</a>.</p>
+    you shouldn't ever see this message, if you do it's a bug!
 
-<h1 id="author">AUTHOR</h1>
+# CONFIGURATION AND ENVIRONMENT
 
-<p>Flavio Poletti <a href="&#109;&#097;&#105;&#108;&#116;&#111;:&#112;&#111;&#108;&#101;&#116;&#116;&#105;&#120;&#064;&#099;&#112;&#097;&#110;&#046;&#111;&#114;&#103;">&#112;&#111;&#108;&#101;&#116;&#116;&#105;&#120;&#064;&#099;&#112;&#097;&#110;&#046;&#111;&#114;&#103;</a></p>
+`wrapperl` does not have a configuration per-se, but is of course
+relying on the presence of a `wrapperl.env` file for proper
+functioning - see ["DESCRIPTION"](#description).
 
-<h1 id="license-and-copyright">LICENSE AND COPYRIGHT</h1>
+# DEPENDENCIES
 
-<p>Copyright (c) 2015, Flavio Poletti <code>polettix@cpan.org</code>.</p>
+`wrapperl` relies on modules that are part of any standard Perl
+distribution as of release 5.6.0.
 
-<p>This module is free software.  You can redistribute it and/or
+# BUGS AND LIMITATIONS
+
+Please report bugs and hopefully solutions through the GitHub
+repository at [https://github.com/polettix/wrapperl](https://github.com/polettix/wrapperl).
+
+# AUTHOR
+
+Flavio Poletti <polettix@cpan.org>
+
+# LICENSE AND COPYRIGHT
+
+Copyright (c) 2015, Flavio Poletti `polettix@cpan.org`.
+
+This module is free software.  You can redistribute it and/or
 modify it under the terms of the Artistic License 2.0. Please read
-the full license in the <code>LICENSE</code> file inside the distribution,
-as you can find at <a href="https://github.com/polettix/wrapperl">https://github.com/polettix/wrapperl</a>.</p>
+the full license in the `LICENSE` file inside the distribution,
+as you can find at [https://github.com/polettix/wrapperl](https://github.com/polettix/wrapperl).
 
-<p>This program is distributed in the hope that it will be useful,
+This program is distributed in the hope that it will be useful,
 but without any warranty; without even the implied warranty of
-merchantability or fitness for a particular purpose.</p>
+merchantability or fitness for a particular purpose.
       </div>
    </body>
 </html>
