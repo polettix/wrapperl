@@ -2,6 +2,97 @@
 
 wrapperl - wrapper for Perl customized invocation
 
+# TL;DR
+
+... or an example is worth a whole manual sometimes.
+
+Let's make a few assumptions:
+
+- you will write your program and are willing to name it `prg.pl`. If
+you don't even want to write one, you can copy and paste this:
+
+        #!/usr/bin/env perl
+        print "using perl '$^X', \@INC contains:\n";
+        print "- '$_'\n" for @INC;
+
+- you do your coding in a development environment where:
+    - you develop `prg.pl` inside directory `/home/me/program`
+    - `perl` is located at `/home/me/perl/bin/perl`
+    - the libraries are stored in non-standard positions
+    `/path/to/some/lib` and `/path/to/another/lib`
+- you deploy your program in a production environment with a different
+setup, namely:
+    - your program `prg.pl` is deployed in directory `/app/program`
+    - `perl` is located at `/approved/perl/bin/perl`
+    - the libraries you need are all stored in `/approved/lib`
+
+In both environments, you create a symbolic link named `prg`
+pointing towards `wrapperl` and located inside the same directory
+as `prg.pl`.
+
+Inside the same directory, or any ancestor, you create the
+`wrapperl.env` file, which will be specific for the environment.
+We will put the file in the same directory as `prg` and `prg.pl`
+in this example.
+
+This is what you end up with in the development environment:
+
+    me@devhost /home/me/program$ ls -l
+    lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -> /home/me/bin/wrapperl
+    -rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
+    -rwxr-xr-x 1 me me 74 Apr 22 12:35 wrapperl.env
+
+    me@devhost /home/me/program$ cat wrapperl.env
+    $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
+    $PERL = '/home/me/perl/bin/perl';
+
+This is what you have in the production environment:
+
+    me@production /app/program$ ls -l
+    lrwxrwxrwx 1 me me  8 Apr 25 20:51 prg -> /usr/local/bin/wrapperl
+    -rwxr-xr-x 1 me me 74 Apr 25 20:51 prg.pl
+    -rwxr-xr-x 1 me me 74 Apr 25 20:51 wrapperl.env
+
+    me@production /app/program$ cat wrapperl.env
+    $ENV{PERL5LIB} = '/approved/lib';
+    $PERL = '/approved/perl/bin/perl';
+
+So yes, they two setups are mostly the same, except for the
+`wrapperl.env` file contents that contain the environment-specific
+configurations.
+
+Now, you are ready to run your program in either environment, just
+remember to execute the symbolic link to `wrapperl` instead of your
+program.
+
+In the development environment:
+
+    me@devhost /home/me/program$ ./prg
+    using perl '/home/me/perl/bin/perl', @INC contains:
+    - '/path/to/another/lib/i686-linux'
+    - '/path/to/another/lib'
+    - '/path/to/some/lib/i686-linux'
+    - '/path/to/some/lib'
+    - '/home/me/perl/lib/site_perl/5.18.1/i686-linux'
+    - '/home/me/perl/lib/site_perl/5.18.1'
+    - '/home/me/perl/lib/5.18.1/i686-linux'
+    - '/home/me/perl/lib/5.18.1'
+    - '.'
+
+In the production environment:
+
+    me@production /app/program$ cat wrapperl.env
+    using perl '/approved/perl/bin/perl', @INC contains:
+    - '/approved/lib/i686-linux'
+    - '/approved/lib'
+    - '/approved/perl/lib/site_perl/5.18.1/i686-linux'
+    - '/approved/perl/lib/site_perl/5.18.1'
+    - '/approved/perl/lib/5.18.1/i686-linux'
+    - '/approved/perl/lib/5.18.1'
+    - '.'
+
+That's all folks!
+
 # SYNOPSYS
 
     # Minimal setup: create a "wrapperl.env" file.
@@ -110,97 +201,6 @@ wrapperl - wrapper for Perl customized invocation
     shell$ ./perldoc My::Module
     shell$ wrapperl -d My::Module
     shell$ wrapperl -s perldoc My::Module
-
-# TL;DR
-
-... or an example is worth a whole manual sometimes.
-
-Let's make a few assumptions:
-
-- you will write your program and are willing to name it `prg.pl`. If
-you don't even want to write one, you can copy and paste this:
-
-        #!/usr/bin/env perl
-        print "using perl '$^X', \@INC contains:\n";
-        print "- '$_'\n" for @INC;
-
-- you do your coding in a development environment where:
-    - you develop `prg.pl` inside directory `/home/me/program`
-    - `perl` is located at `/home/me/perl/bin/perl`
-    - the libraries are stored in non-standard positions
-    `/path/to/some/lib` and `/path/to/another/lib`
-- you deploy your program in a production environment with a different
-setup, namely:
-    - your program `prg.pl` is deployed in directory `/app/program`
-    - `perl` is located at `/approved/perl/bin/perl`
-    - the libraries you need are all stored in `/approved/lib`
-
-In both environments, you create a symbolic link named `prg`
-pointing towards `wrapperl` and located inside the same directory
-as `prg.pl`.
-
-Inside the same directory, or any ancestor, you create the
-`wrapperl.env` file, which will be specific for the environment.
-We will put the file in the same directory as `prg` and `prg.pl`
-in this example.
-
-This is what you end up with in the development environment:
-
-    me@devhost /home/me/program$ ls -l
-    lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -> /home/me/bin/wrapperl
-    -rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
-    -rwxr-xr-x 1 me me 74 Apr 22 12:35 wrapperl.env
-
-    me@devhost /home/me/program$ cat wrapperl.env
-    $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
-    $PERL = '/home/me/perl/bin/perl';
-
-This is what you have in the production environment:
-
-    me@production /app/program$ ls -l
-    lrwxrwxrwx 1 me me  8 Apr 25 20:51 prg -> /usr/local/bin/wrapperl
-    -rwxr-xr-x 1 me me 74 Apr 25 20:51 prg.pl
-    -rwxr-xr-x 1 me me 74 Apr 25 20:51 wrapperl.env
-
-    me@production /app/program$ cat wrapperl.env
-    $ENV{PERL5LIB} = '/approved/lib';
-    $PERL = '/approved/perl/bin/perl';
-
-So yes, they two setups are mostly the same, except for the
-`wrapperl.env` file contents that contain the environment-specific
-configurations.
-
-Now, you are ready to run your program in either environment, just
-remember to execute the symbolic link to `wrapperl` instead of your
-program.
-
-In the development environment:
-
-    me@devhost /home/me/program$ ./prg
-    using perl '/home/me/perl/bin/perl', @INC contains:
-    - '/path/to/another/lib/i686-linux'
-    - '/path/to/another/lib'
-    - '/path/to/some/lib/i686-linux'
-    - '/path/to/some/lib'
-    - '/home/me/perl/lib/site_perl/5.18.1/i686-linux'
-    - '/home/me/perl/lib/site_perl/5.18.1'
-    - '/home/me/perl/lib/5.18.1/i686-linux'
-    - '/home/me/perl/lib/5.18.1'
-    - '.'
-
-In the production environment:
-
-    me@production /app/program$ cat wrapperl.env
-    using perl '/approved/perl/bin/perl', @INC contains:
-    - '/approved/lib/i686-linux'
-    - '/approved/lib'
-    - '/approved/perl/lib/site_perl/5.18.1/i686-linux'
-    - '/approved/perl/lib/site_perl/5.18.1'
-    - '/approved/perl/lib/5.18.1/i686-linux'
-    - '/approved/perl/lib/5.18.1'
-    - '.'
-
-That's all folks!
 
 # DESCRIPTION
 

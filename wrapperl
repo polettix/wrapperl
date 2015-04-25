@@ -142,115 +142,6 @@ __END__
 
 wrapperl - wrapper for Perl customized invocation
 
-=head1 SYNOPSYS
-
-   # Minimal setup: create a "wrapperl.env" file.
-   # It is a Perl program to set up the right environment and
-   # define the $PERL variable that points to the desired perl
-   shell$ cat wrapperl.env
-   $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
-   $PERL = '/path/to/bin/perl';
-
-   # You can have a different "wrapperl.env" on each directory.
-   # What is the one that we would see from here? "wrapperl" can
-   # tell you this with -e | --env
-   shell$ wrapperl -e
-   /path/to/wrapperl.env
-
-   # If you also provide a parameter to -e | --env, it will tell
-   # you which environment file will be seen by the provided
-   # parameter (that is of course expected to be a path)
-   shell$ wrapperl -e /path/to/a/wrapperl/symlink
-   /path/to/a/wrapper.env
-
-   # Time to make it work! Option -x | --exec means calling it
-   # as if it were the chosen perl with the configurations in
-   # "wrapperl.env"
-   shell$ wrapperl -x -le 'print $^X'
-   /path/to/bin/perl
-
-   # This is actually the default behaviour if the first parameter
-   # is not supported by "wrapperl" directly, so the following calls
-   # are equivalent. So, use -x if you need to pass the called perl
-   # options -d, -e, -s or -x, otherwise you can avoid it
-   shell$ wrapperl -x myprogram.pl --foo bar # OR
-   shell$ wrapperl myprogram.pl --foo bar
-
-   # Option -s | --sibling allows to call programs that are
-   # usually shipped with perl, e.g. perlthanks, podchecker, etc.
-   shell$ wrapperl -s podchecker myprogram.pl
-
-   # Another useful option is -d | --doc to call perldoc quickly,
-   # so the following ones are equivalent:
-   shell$ wrapperl -s perldoc Module::Name
-   shell$ wrapperl -d Module::Name
-
-   # You can symlink wrapperl and it will do some magic.
-   # Call the real program a name ending with ".pl" (e.g. "prg.pl")
-   # and symlink wrapperl with the same name withouth the extension
-   # (e.g. "prg"). This is what will happen:
-   shell$ ls -l
-   -rw-r--r-- 1 me me 74 Apr 23 22:20 wrapperl.env
-   lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -> /path/to/wrapperl
-   -rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
-
-   shell$ cat prg.pl
-   #!/usr/bin/env perl
-   print "using perl '$^X', \@INC contains:\n";
-   print "- '$_'\n" for @INC;
-
-   shell$ cat wrapperl.env
-   $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
-   $PERL = '/path/to/bin/perl';
-
-   shell$ which perl
-   /usr/bin/perl
-
-   # If you call the program directly, wrapperl is not used of course
-   shell$ ./prg.pl
-   using perl '/usr/bin/perl', @INC contains:
-   - '/etc/perl'
-   - '/usr/local/lib/perl/5.14.2'
-   - '/usr/local/share/perl/5.14.2'
-   - '/usr/lib/perl5'
-   - '/usr/share/perl5'
-   - '/usr/lib/perl/5.14'
-   - '/usr/share/perl/5.14'
-   - '/usr/local/lib/site_perl'
-   - '.'
-
-   # On the other hand, if you call the "prg" symlink to wrapperl,
-   # the same program above will be called, but with the perl and
-   # options set in "wrapperl.env"
-   shell$ ./prg
-   using perl '/path/to/bin/perl', @INC contains:
-   - '/path/to/another/lib/i686-linux'
-   - '/path/to/another/lib'
-   - '/path/to/some/lib/i686-linux'
-   - '/path/to/some/lib'
-   - '/path/to/lib/site_perl/5.18.1/i686-linux'
-   - '/path/to/lib/site_perl/5.18.1'
-   - '/path/to/lib/5.18.1/i686-linux'
-   - '/path/to/lib/5.18.1'
-   - '.'
-
-   # There are two symlinks/names that trigger a special behaviour,
-   # namely "perl" and "perldoc" that do what you think
-   shell$ ls -l
-   lrwxrwxrwx 1 me me  8 Apr 23 21:51 perl -> /path/to/wrapperl
-   lrwxrwxrwx 1 me me  8 Apr 23 22:46 perldoc -> /path/to/wrapperl
-
-   # The following two are therefore equivalent (and no, the
-   # double "-x" is not an error, because the first is consumed by
-   # "wrapperl" and the second one is for the invoked perl)
-   shell$ ./perl -x /path/to/my/program.pl
-   shell$ wrapperl -x -x /path/to/my/program.pl
-
-   # These three are equivalent too
-   shell$ ./perldoc My::Module
-   shell$ wrapperl -d My::Module
-   shell$ wrapperl -s perldoc My::Module
-
 =head1 TL;DR
 
 ... or an example is worth a whole manual sometimes.
@@ -379,6 +270,114 @@ In the production environment:
 
 That's all folks!
 
+=head1 SYNOPSYS
+
+   # Minimal setup: create a "wrapperl.env" file.
+   # It is a Perl program to set up the right environment and
+   # define the $PERL variable that points to the desired perl
+   shell$ cat wrapperl.env
+   $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
+   $PERL = '/path/to/bin/perl';
+
+   # You can have a different "wrapperl.env" on each directory.
+   # What is the one that we would see from here? "wrapperl" can
+   # tell you this with -e | --env
+   shell$ wrapperl -e
+   /path/to/wrapperl.env
+
+   # If you also provide a parameter to -e | --env, it will tell
+   # you which environment file will be seen by the provided
+   # parameter (that is of course expected to be a path)
+   shell$ wrapperl -e /path/to/a/wrapperl/symlink
+   /path/to/a/wrapper.env
+
+   # Time to make it work! Option -x | --exec means calling it
+   # as if it were the chosen perl with the configurations in
+   # "wrapperl.env"
+   shell$ wrapperl -x -le 'print $^X'
+   /path/to/bin/perl
+
+   # This is actually the default behaviour if the first parameter
+   # is not supported by "wrapperl" directly, so the following calls
+   # are equivalent. So, use -x if you need to pass the called perl
+   # options -d, -e, -s or -x, otherwise you can avoid it
+   shell$ wrapperl -x myprogram.pl --foo bar # OR
+   shell$ wrapperl myprogram.pl --foo bar
+
+   # Option -s | --sibling allows to call programs that are
+   # usually shipped with perl, e.g. perlthanks, podchecker, etc.
+   shell$ wrapperl -s podchecker myprogram.pl
+
+   # Another useful option is -d | --doc to call perldoc quickly,
+   # so the following ones are equivalent:
+   shell$ wrapperl -s perldoc Module::Name
+   shell$ wrapperl -d Module::Name
+
+   # You can symlink wrapperl and it will do some magic.
+   # Call the real program a name ending with ".pl" (e.g. "prg.pl")
+   # and symlink wrapperl with the same name withouth the extension
+   # (e.g. "prg"). This is what will happen:
+   shell$ ls -l
+   -rw-r--r-- 1 me me 74 Apr 23 22:20 wrapperl.env
+   lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -> /path/to/wrapperl
+   -rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
+
+   shell$ cat prg.pl
+   #!/usr/bin/env perl
+   print "using perl '$^X', \@INC contains:\n";
+   print "- '$_'\n" for @INC;
+
+   shell$ cat wrapperl.env
+   $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
+   $PERL = '/path/to/bin/perl';
+
+   shell$ which perl
+   /usr/bin/perl
+
+   # If you call the program directly, wrapperl is not used of course
+   shell$ ./prg.pl
+   using perl '/usr/bin/perl', @INC contains:
+   - '/etc/perl'
+   - '/usr/local/lib/perl/5.14.2'
+   - '/usr/local/share/perl/5.14.2'
+   - '/usr/lib/perl5'
+   - '/usr/share/perl5'
+   - '/usr/lib/perl/5.14'
+   - '/usr/share/perl/5.14'
+   - '/usr/local/lib/site_perl'
+   - '.'
+
+   # On the other hand, if you call the "prg" symlink to wrapperl,
+   # the same program above will be called, but with the perl and
+   # options set in "wrapperl.env"
+   shell$ ./prg
+   using perl '/path/to/bin/perl', @INC contains:
+   - '/path/to/another/lib/i686-linux'
+   - '/path/to/another/lib'
+   - '/path/to/some/lib/i686-linux'
+   - '/path/to/some/lib'
+   - '/path/to/lib/site_perl/5.18.1/i686-linux'
+   - '/path/to/lib/site_perl/5.18.1'
+   - '/path/to/lib/5.18.1/i686-linux'
+   - '/path/to/lib/5.18.1'
+   - '.'
+
+   # There are two symlinks/names that trigger a special behaviour,
+   # namely "perl" and "perldoc" that do what you think
+   shell$ ls -l
+   lrwxrwxrwx 1 me me  8 Apr 23 21:51 perl -> /path/to/wrapperl
+   lrwxrwxrwx 1 me me  8 Apr 23 22:46 perldoc -> /path/to/wrapperl
+
+   # The following two are therefore equivalent (and no, the
+   # double "-x" is not an error, because the first is consumed by
+   # "wrapperl" and the second one is for the invoked perl)
+   shell$ ./perl -x /path/to/my/program.pl
+   shell$ wrapperl -x -x /path/to/my/program.pl
+
+   # These three are equivalent too
+   shell$ ./perldoc My::Module
+   shell$ wrapperl -d My::Module
+   shell$ wrapperl -s perldoc My::Module
 
 =head1 DESCRIPTION
 
