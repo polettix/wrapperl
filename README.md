@@ -8,7 +8,7 @@ wrapperl - wrapper for Perl customized invocation
 
 Let's make a few assumptions:
 
-- you will write your program and are willing to name it `prg.pl`. If
+- you will write your program `prg.pl`. If
 you don't even want to write one, you can copy and paste this:
 
         #!/usr/bin/env perl

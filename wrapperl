@@ -152,7 +152,7 @@ Let's make a few assumptions:
 
 =item *
 
-you will write your program and are willing to name it C<prg.pl>. If
+you will write your program C<prg.pl>. If
 you don't even want to write one, you can copy and paste this:
 
    #!/usr/bin/env perl
