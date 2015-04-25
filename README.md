@@ -6,6 +6,12 @@ wrapperl - wrapper for Perl customized invocation
 
 ... or an example is worth a whole manual sometimes.
 
+First of all, download `wrapperl` from
+[https://raw.githubusercontent.com/polettix/wrapperl/master/wrapperl](https://raw.githubusercontent.com/polettix/wrapperl/master/wrapperl)
+and put somewhere in the environments where you need it. It is not
+necessary to put it in a directory in the `PATH`, although it is
+suggested in order to access all functionalities.
+
 Let's make a few assumptions:
 
 - you will write your program `prg.pl`. If
@@ -40,7 +46,7 @@ This is what you end up with in the development environment:
     me@devhost /home/me/program$ ls -l
     lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -> /home/me/bin/wrapperl
     -rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
-    -rwxr-xr-x 1 me me 74 Apr 22 12:35 wrapperl.env
+    -rwxr-xr-x 1 me me 90 Apr 22 12:35 wrapperl.env
 
     me@devhost /home/me/program$ cat wrapperl.env
     $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
@@ -51,7 +57,7 @@ This is what you have in the production environment:
     me@production /app/program$ ls -l
     lrwxrwxrwx 1 me me  8 Apr 25 20:51 prg -> /usr/local/bin/wrapperl
     -rwxr-xr-x 1 me me 74 Apr 25 20:51 prg.pl
-    -rwxr-xr-x 1 me me 74 Apr 25 20:51 wrapperl.env
+    -rwxr-xr-x 1 me me 66 Apr 25 20:51 wrapperl.env
 
     me@production /app/program$ cat wrapperl.env
     $ENV{PERL5LIB} = '/approved/lib';
@@ -81,7 +87,7 @@ In the development environment:
 
 In the production environment:
 
-    me@production /app/program$ cat wrapperl.env
+    me@production /app/program$ ./prg
     using perl '/approved/perl/bin/perl', @INC contains:
     - '/approved/lib/i686-linux'
     - '/approved/lib'
