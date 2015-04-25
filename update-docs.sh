@@ -4,11 +4,9 @@ MYDIR=$(dirname "$ME")
 cd $MYDIR &&
 branch=$(git branch | sed -n 's/^* //p') &&
 [ "$branch" == "master" ] &&
-contents=$(
-   cat html.preamble
-   pod2markdown wrapperl | kramdown
-   cat html.postamble  
-) &&
+pod2markdown wrapperl README.md &&
+git commit README.md 'aligned documentation' &&
+contents=$(cat html.preamble README.md html.postamble) &&
 git checkout gh-pages &&
 echo "$contents" > index.html &&
 (
