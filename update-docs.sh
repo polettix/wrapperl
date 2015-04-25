@@ -12,6 +12,7 @@ contents=$(
 git checkout gh-pages &&
 echo "$contents" > index.html &&
 (
-   git commit index.html -m 'aligned documentation'
+   git commit index.html -m 'aligned documentation' &&
+   git push
    git checkout master
 )
