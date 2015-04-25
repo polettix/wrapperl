@@ -12,25 +12,28 @@ use File::Spec::Functions qw<
 use Cwd qw< getcwd realpath >;
 use Pod::Usage qw< pod2usage >;
 my $VERSION = '0.02';
-our $SUFFIX = '.pl';
 
-our $ME = absolute($0);
+our $SUFFIX  = '.pl';
+our $PERLDOC = 'perldoc';
+our $PERL    = $^X;
+our $ME      = absolute($0);
 
 my @alternatives = (
-   [
-      qr{(?mxs: \A wrapperl \z)},
-      \&action_wrapperl
-   ],
-   [
-      qr{(?mxs: \A perl \z)},
-      \&action_perl
-   ],
+   [qr{(?mxs: \A wrapperl \z)}, \&dispatch_wrapperl],
+   [qr{(?mxs: \A perl \z)},     \&action_exec],
    [
       qr{(?mxs: \A perldoc \z)},
-      \&action_perldoc
+      sub {
+         unshift @ARGV, $PERLDOC;
+         action_sibling();
+      },
    ],
    [
-      qr{.}, \&action_default
+      qr{.},
+      sub {
+         unshift @ARGV, "$ME$SUFFIX";
+         action_exec();
+      },
    ],
 );
 
@@ -43,37 +46,36 @@ for my $candidate (@alternatives) {
 
 die "something went really wrong\n";
 
-sub load_envfile {
-   my ($envfile) = @_;
-   my $retval = do $envfile
-      or die "errors loading '$envfile'\n";
-   return $retval;
-}
-
-sub find_envfile {
-   my ($start) = @_;
-   my ($volume, $directories) = splitpath($start, -d $start);
-   my @path = splitdir($directories);
-   my $envfile;
-   while (@path) {
-      my $candidate = catpath($volume, catdir(@path), 'wrapperl.env');
-      return $candidate if -e $candidate;
-      pop @path;
-   } ## end while (@path)
-   die "could not find wrapperl.env\n" unless defined $envfile;
-   return; # never reached
-}
-
 sub absolute {
    my ($path) = @_;
    return $path if file_name_is_absolute($path);
    return rel2abs($path);
 }
 
-sub envfile_cwd_or_home {
-   return eval { find_envfile(getcwd()) }
-      || find_envfile($ENV{HOME});
-}
+sub find_envfile {
+   my @starts = @_;
+   push @starts, getcwd(), $ENV{HOME} unless @starts;
+   for my $start (@starts) {
+      next unless -e $start;
+      my ($volume, $directories) = splitpath($start, -d $start);
+      my @path = splitdir($directories);
+      my $envfile;
+      while (@path) {
+         my $candidate = catpath($volume, catdir(@path), 'wrapperl.env');
+         return $candidate if -e $candidate;
+         pop @path;
+      }
+   } ## end for my $start (@starts)
+   die "could not find wrapperl.env\n";
+   return;    # never reached
+} ## end sub find_envfile
+
+sub load_envfile {
+   my $envfile = find_envfile(@_);
+   my $retval  = do $envfile
+     or die "errors loading '$envfile'\n";
+   return $retval;
+} ## end sub load_envfile
 
 sub myexec {
    my @command = @_;
@@ -81,30 +83,53 @@ sub myexec {
    die "failed execution of @command\n";
 }
 
-sub action_wrapperl {
-   my $envfile = @ARGV ? find_envfile(@ARGV) : envfile_cwd_or_home();
-   print {*STDOUT} "$envfile\n";
+sub action_env {
+   my $e = find_envfile(@ARGV ? $ARGV[0] : ());
+   print {*STDOUT} "$e\n";
    exit 0;
 }
 
-sub action_perl {
-   my $perl = load_envfile(envfile_cwd_or_home());
-   myexec($perl, @ARGV);
+sub action_sibling {
+   my $sibling = shift @ARGV;
+   pod2usage(
+      -verbose  => 99,
+      -sections => 'USAGE',
+      message   => 'no sibling program provided'
+   ) unless defined $sibling;
+
+   load_envfile();
+   my ($v, $d) = splitpath($PERL);
+   my (undef, undef, $basename) = splitpath($sibling);
+   my $path = catpath($v, $d, $basename);
+   myexec($PERL, $path, @ARGV);
+} ## end sub action_sibling
+
+sub action_exec {
+   load_envfile();
+   myexec($PERL, @ARGV);
 }
 
-sub action_perldoc {
-   my $perl = load_envfile(envfile_cwd_or_home());
-   my ($v, $d) = splitpath($perl);
-   my (undef, undef, $basename) = splitpath($ME);
-   my $perldoc = catpath($v, $d, $basename);
-   myexec($perl, $perldoc, @ARGV);
-}
+sub dispatch_wrapperl {
+   my $first = $ARGV[0] || '';
+   if ($first =~ m{\A(?: -e | --env )\z}mxs) {
+      shift @ARGV;
+      action_env();
+   }
+   elsif ($first =~ m{\A(?: -d | --doc )\z}mxs) {
+      shift @ARGV;
+      unshift @ARGV, $PERLDOC;
+      action_sibling();
+   }
+   elsif ($first =~ m{\A(?: -s | --sibling )\z}mxs) {
+      shift @ARGV;
+      action_sibling();
+   }
 
-sub action_default {
-   my $perl = load_envfile(find_envfile($ME));
-   my $target = "$ME$SUFFIX";
-   myexec($perl, $target, @ARGV);
-}
+   # Last chance, we're to act as wrap-perl. Just make sure
+   # get rid of the first parameter if invoked with -x | --exec
+   shift @ARGV if $first =~ m{\A(?: -x | --exec )\z}mxs;
+   action_exec();
+} ## end sub dispatch_wrapperl
 
 __END__
 
@@ -114,129 +139,391 @@ __END__
 
 =head1 NAME
 
-wrapperl - simple wrapper system for Perl
+wrapperl - wrapper for Perl customized invocation
 
 =head1 SYNOPSYS
 
-   # the "real" Perl program goes into somename.pl
-   $ vi somename.pl # and put your stuff inside
+   # Minimal setup: create a "wrapperl.env" file.
+   # It is a Perl program to set up the right environment and
+   # define the $PERL variable that points to the desired perl
+   shell$ cat wrapperl.env
+   $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
+   $PERL = '/path/to/bin/perl';
 
-   # the "wrapper" is a symlink to wrapperl, named somename
-   # in same directory as somename.pl
-   $ ln -s /path/to/wrapperl somename
+   # You can have a different "wrapperl.env" on each directory.
+   # What is the one that we would see from here? "wrapperl" can
+   # tell you this with -e | --env
+   shell$ wrapperl -e
+   /path/to/wrapperl.env
 
-   # the configuration is put in a wrapperl.env file, which is
-   # actually a Perl file with a configuration inside. It is put
-   # in the same directory or any ancestor as somename.pl/somename
-   $ cat wrapperl.env
-   $ENV{PERL5LIB} = '';
-   '/path/to/perl';
+   # If you also provide a parameter to -e | --env, it will tell
+   # you which environment file will be seen by the provided
+   # parameter (that is of course expected to be a path)
+   shell$ wrapperl -e /path/to/a/wrapperl/symlink
+   /path/to/a/wrapper.env
+
+   # Time to make it work! Option -x | --exec means calling it
+   # as if it were the chosen perl with the configurations in
+   # "wrapperl.env"
+   shell$ wrapperl -x -le 'print $^X'
+   /path/to/bin/perl
+
+   # This is actually the default behaviour if the first parameter
+   # is not supported by "wrapperl" directly, so the following calls
+   # are equivalent. So, use -x if you need to pass the called perl
+   # options -d, -e, -s or -x, otherwise you can avoid it
+   shell$ wrapperl -x myprogram.pl --foo bar # OR
+   shell$ wrapperl myprogram.pl --foo bar
+
+   # Option -s | --sibling allows to call programs that are
+   # usually shipped with perl, e.g. perlthanks, podchecker, etc.
+   shell$ wrapperl -s podchecker myprogram.pl
+
+   # Another useful option is -d | --doc to call perldoc quickly,
+   # so the following ones are equivalent:
+   shell$ wrapperl -s perldoc Module::Name
+   shell$ wrapperl -d Module::Name
+
+   # You can symlink wrapperl and it will do some magic.
+   # Call the real program a name ending with ".pl" (e.g. "prg.pl")
+   # and symlink wrapperl with the same name withouth the extension
+   # (e.g. "prg"). This is what will happen:
+   shell$ ls -l
+   -rw-r--r-- 1 me me 74 Apr 23 22:20 wrapperl.env
+   lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -> /path/to/wrapperl
+   -rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
+
+   shell$ cat prg.pl
+   #!/usr/bin/env perl
+   print "using perl '$^X', \@INC contains:\n";
+   print "- '$_'\n" for @INC;
+
+   shell$ cat wrapperl.env
+   $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
+   $PERL = '/path/to/bin/perl';
+
+   shell$ which perl
+   /usr/bin/perl
+
+   # If you call the program directly, wrapperl is not used of course
+   shell$ ./prg.pl
+   using perl '/usr/bin/perl', @INC contains:
+   - '/etc/perl'
+   - '/usr/local/lib/perl/5.14.2'
+   - '/usr/local/share/perl/5.14.2'
+   - '/usr/lib/perl5'
+   - '/usr/share/perl5'
+   - '/usr/lib/perl/5.14'
+   - '/usr/share/perl/5.14'
+   - '/usr/local/lib/site_perl'
+   - '.'
+
+   # On the other hand, if you call the "prg" symlink to wrapperl,
+   # the same program above will be called, but with the perl and
+   # options set in "wrapperl.env"
+   shell$ ./prg
+   using perl '/path/to/bin/perl', @INC contains:
+   - '/path/to/another/lib/i686-linux'
+   - '/path/to/another/lib'
+   - '/path/to/some/lib/i686-linux'
+   - '/path/to/some/lib'
+   - '/path/to/lib/site_perl/5.18.1/i686-linux'
+   - '/path/to/lib/site_perl/5.18.1'
+   - '/path/to/lib/5.18.1/i686-linux'
+   - '/path/to/lib/5.18.1'
+   - '.'
+
+   # There are two symlinks/names that trigger a special behaviour,
+   # namely "perl" and "perldoc" that do what you think
+   shell$ ls -l
+   lrwxrwxrwx 1 me me  8 Apr 23 21:51 perl -> /path/to/wrapperl
+   lrwxrwxrwx 1 me me  8 Apr 23 22:46 perldoc -> /path/to/wrapperl
+
+   # The following two are therefore equivalent (and no, the
+   # double "-x" is not an error, because the first is consumed by
+   # "wrapperl" and the second one is for the invoked perl)
+   shell$ ./perl -x /path/to/my/program.pl
+   shell$ wrapperl -x -x /path/to/my/program.pl
+
+   # These three are equivalent too
+   shell$ ./perldoc My::Module
+   shell$ wrapperl -d My::Module
+   shell$ wrapperl -s perldoc My::Module
 
 =head1 DESCRIPTION
 
 This program lets you wrap a perl program with some local-specific
 configurations.
 
-=head2 Normal Usage
+Why would you do this, e.g. as opposed to modifying the
+I<hash-bang> line or setting C<PERL5LIB>, or calling the perl
+executable directly? Well, lazyness of course, but also the fact
+that in different environments the same program might need different
+configurations, and changing those configurations possibly in many
+little Perl programs quickly becomes a hassle and the changing
+process can be error-prone.
 
-Using it is simple and has three steps:
+C<wrapperl> provides you with a consistent, minimal and easy to setup
+way to concentrate those configurations that are local-specific in
+one single simple file, and be sure that you will call your Perl
+program(s) with the right setup every time.
 
-=over
+C<wrapperl>'s behaviour strongly depends on its name. That is, if
+you leave it as C<wrapperl> it behaves in a specific way, while
+if you name it differently then it does something else.
 
-=item 1.
+The easiest (and most robust) way to do the renaming is to use
+symbolic links, if your filesystem allows you to. Otherwise, nothing
+prevents you from naming C<wrapperl> whatever you want and get
+the behaviours described below.
 
-you assign your program a name that ends in C<.pl>, e.g. C<somename.pl>;
+The following sections start by describing the C<wrapperl.env> file
+you should set up, then describe the behaviour in the different
+conditions; among them, most probably you will be interested into
+L</Named Something Else>.
 
-=item 2.
+=head2 The C<wrapperl.env> File
 
-you create a symbolic link to C<wrapperl> inside the same directory
-as your program, and name the symbolic link the same as the program
-but without the C<.pl> extension, e.g. C<somename>;
+The C<wrapperl.env> file is at the heart of your localization
+configuration.
 
-=item  3.
+=head3 Contents
 
-you create a small Perl program called C<wrapperl.env> located inside the
-same directory as the main program, or any of its ancestors (the first
-that is found while backtracking is used).
+The file is a standard Perl program. It will be called using whatever
+I<default> perl is found, that is not what you are looking for most
+probably (otherwise you would probably not be using C<wrapperl> at
+all). You can do whatever setting inside it, e.g. most probably you
+will be interested in setting the environment variable C<PERL5LIB>
+to point towards the library directories you want to include in
+C<@INC>.
 
-=back
-
-This small program in the third step is supposed
-to set the needed environment variables, like C<$ENV{PERL5LIB}>, and also
-return the path to the C<perl> program to use for invoking the program
-in the modified environment. If you want to reuse the same C<perl>, just
-use C<$^X> as the last statement in your C<wrapperl.env> file, otherwise
-put a string with the desired path.
-
-This is really it! Now you can call the symbolic link created in step
-2, and the real program in step 1 will be called actually, in the modified
-environment and with the C<perl> you set inside the C<wrapperl.env> file.
-
-=head2 Special Names
-
-As it should be evident at this point, this program acts depending on
-the name it is called with. While in general the behaviour is what
-has been described in the previous section, there are some names that
-are treated in a special way:
-
-=over
-
-=item B<< wrapperl >>
-
-when invoked directly (or anyway through a symlink called C<wrapperl>),
-the program will show what environment file C<wrapperl.env> is used. You
-can pass a path to set the starting point for the research of the file,
-otherwise it will start from the current working directory and in case
-of absence from the home directory.
-
-=item B<< perl >>
-
-this name makes C<wrapperl> transform into a call to the C<perl> indicated
-by the C<wrapperl.env> file, with all following command line options.
-
-=item B<< perldoc >>
-
-this name calls the C<perldoc> program located in the same directory
-as the loaded C<perl>, with following parameters.
-
-=back
-
-This means that you can symlink with name C<perl> and get a way to
-invoke C<perl> with the right parameters set in the C<wrapperl.env>
-file.
-
-=head2 C<wrapperl.env>
-
-The C<wrapperl.env> file is executed via a C<do>, so you are warned
-about any possible security issue.
-
-You can of course do whatever you want in this file, including the
-modification of the relevant variables:
+You can also affect how C<wrapperl> works by setting the following
+variables in package C<main>:
 
 =over
 
 =item C<$ME>
 
-this is the absolute path to the invoked program (most probably, a
-symlink to C<wrapperl>). In case of "regular" invocation, i.e. through
-a name that is not special, the real target is derived as
-C<$ME$SUFFIX>, so if you modify either one you can influence which
-target name to use.
+the location of the original program invoked. When calling C<wrapperl>
+with a different name (see L</Named Something Else>), it is used
+together with C<$SUFFIX> described below to form the name of the
+program C<$ME$SUFFIX> that will be called with the new C<$PERL>. In
+general you should not need to fiddle with this.
 
-In case of C<perldoc>, C<$ME> is used to find the last part (i.e.
-the I<basename>) and is then used B<without> the C<$SUFFIX>.
+=item C<$PERL>
+
+the path to the perl to use for invoking the other programs.
+
+By default it is set to the same perl that is executing C<wrapperl>,
+namely C<$^X>.
+
+=item C<$PERLDOC>
+
+The name of the C<perldoc> utility installed along with C<$PERL>.
+
+By default it is set to C<perldoc>, and you should probably not need
+to change it.
 
 =item C<$SUFFIX>
 
-this is a suffix appended to the invoked name C<$ME> to find the real
-Perl program to start. Defaults to C<.pl>.
+a suffix that is appended to the name of the invoked program when
+calling C<wrapperl> with a different name (see
+L</Named Something Else>).
+
+The called program will be C<$ME$SUFFIX>, so if C<$SUFFIX> is set
+to C<.pl>, you are expected to call your I<real> program the same
+as your symbolic link (or renamed C<wrapperl> program) but with
+C<.pl> appended. Example:
+
+   shell$ ls -l
+   lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -> /path/to/wrapperl
+   -rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
+
+If your system is picky about how files should be called (e.g.
+Windows might put some restrictions to what it considers as
+I<executables>), then you can do your transformations directly
+on C<$ME> and set C<$SUFFIX> to the empty string in order to
+select the I<real> program to call.
+
+By default, C<$SUFFIX> is set to C<.pl>.
 
 =back
 
+=head3 Loading
+
+The C<wrapperl.env> file is loaded via a C<do>, so you are warned
+about any possible security issue.
+
+The invocation is supposed to return a true value (in Perl terms),
+otherwise it will be assumed to not being successful and the
+execution will be stopped.
+
+=head3 Position
+
+Depending on how C<wrapperl> is called, the C<wrapperl.env> file is
+searched with different algorithms. In any case, one or more
+I<starting positions> will be detected, and used to perform a search
+from that position upwards in the filesystem. For example, if the
+starting point is C</path/to/some/internal/sub>, then the following
+paths will be searched for including C<wrapperl.env>:
+
+   /path/to/some/internal/sub
+   /path/to/some/internal
+   /path/to/some
+   /path/to
+   /path
+   /
+
+An exception is thrown if no C<wrapperl.env> file is found during the
+search in all the starting points.
+
+The standard resolution of the C<wrapperl.env> file is performed starting
+from the current working directory, then from the user's home directory as
+read from the C<HOME> environment variable.
+
+=head2 Direct Invocation
+
+Direct invocation of C<wrapperl> (i.e. without changing the name
+when calling it) is subject to the processing of some options, that
+you can find in section L</OPTIONS>.
+
+Unless otherwise noted, the resolution of the C<wrapperl.env> file
+is the I<standard> one as described in L</Position>.
+
+If none of the options in L</OPTIONS> is recognised, the selected
+perl in C<$PERL> is invoked with whatever argument list is provided. This
+is equivalent to using the C<-x|--exec> option, except of course that the
+first option is not stripped away in this case.
+
+Option C<-d|--doc> helps you call C<perldoc>, or whatever is set in
+C<$PERLDOC>. This will be useful in order to use the C<perldoc> that is
+shipped with the selected C<$PERL>, and more importantly with the same
+options (e.g. C<PERL5LIB>) set in C<wrapperl.env>, so that you will be
+able to find whatever module is installed in your personalized paths.
+
+Option C<-e|--env> helps you find out what will be the C<wrapperl.env>
+used, so that you can double check it's the one you are expecting and
+its contents. If you also pass a path in the command line, it will
+be used as the starting point for searching C<wrapperl.env>, otherwise
+the standard resolution process described above is used.
+
+Option C<-s|--sibling> allows you to call one of the Perl programs
+that are present in the same directory as C<$PERL>, much in the same
+way as described for C<perldoc> above.
+
+Last, option C<-x|--exec> allows you to call C<$PERL> with the options
+set in C<wrapperl.env>. It is mostly unneeded, unless you want to
+use any of the options above for calling C<$PERL>.
+
+=head2 Named C<perl>
+
+This name makes C<wrapperl> transform into a call to C<$PERL> as
+possibly set by the C<wrapperl.env> file, including any command
+line option provided. The behaviour is the same as calling
+C<wrapperl> with option C<-x|--exec>.
+
+The resolution of the C<wrapperl.env> file is performed according to
+the I<standard resolution> process explained in section L</Position>.
+
+=head2 Named <perldoc>
+
+This name calls the C<perldoc> set in C<$PERLDOC> and located in the
+same directory as C<$PERL>, including any command line option
+provided. The behaviour is the same as calling C<wrapperl> with
+option C<-d|--doc>.
+
+The resolution of the C<wrapperl.env> file is performed according to
+the I<standard resolution> process explained in section L</Position>.
+
+=head2 Named Something Else
+
+The normal usage is intended to ease wrapping a call to your Perl
+program so that the right perl binary with the right libraries is
+used, without sacrificing simplicity.
+
+Assuming that you have set up your C<wrapperl.env> file (see
+L<< The /C<wrapperl.env> File >>, you are only two steps away from
+using C<wrapperl> to automate calling your program with the right
+setup:
+
+=over
+
+=item *
+
+you can write your program without worrying about which perl will
+be used to call it or where the libraries are installed. Your only
+constraint is to name it ending with C<$SUFFIX> or do some magic
+to C<$ME> in C<wrapperl.env> (see L</Contents> for details). By
+default, it suffices that you name your program ending with C<.pl>.
+
+For example, we will assume that your program is called C<prg.pl>.
+
+=item *
+
+You set up a copy to C<wrapperl> to be called the same as your
+program, but without the C<$SUFFIX>. In the example, your copy
+would be called C<prg>.
+
+To make the copy you don't really have to make a copy! A symbolic
+link is sufficient, if your filesystem supports them.
+
+=back
+
+This is really it! Now, every time you need to run your program...
+don't do it, execute the C<wrapperl> copy instead! That is, in the
+example you would call C<prg>, and it would in turn call your
+C<prg.pl> but after reading all the configurations
+in C<wrapperl.env>.
 
 =head1 OPTIONS
 
-This program really has no options.
+When invoked with name C<wrapperl>, this program has the following
+options. Note that you can provide only one of them at any time, and
+anyone not appearing here will actually be used for invoking the
+perl indicated in the C<wrapperl.env> file.
+
+In all the options below, unless otherwise noted, the C<wrapperl.env>
+file is searched starting first from the current working directory,
+then starting from the user's home directory in case it is not found.
+
+=over
+
+=item B<< -d | --doc [arg1 arg2 ...] >>
+
+invoke whatever program is set in the C<$PERLDOC> variable in package
+C<main> (i.e. C<perldoc> by default).
+
+The C<$PERLDOC> program that is used is expected to be placed in
+the same directory as the selected perl set in the C<$PERL> variable,
+with the other options set inside the C<wrapperl.env> configuration
+file.
+
+=item B<< -e | --env [path] >>
+
+print the path to the C<wrapperl.env> file.
+
+If a C<path> is provided after this option, it is used as a starting
+location for searching C<wrapperl.env>. This is the same algorithm
+that would be used when C<wrapperl> is invoked with a different
+name (see L</Named Something Else>).
+
+=item B<< -s | --sibling name [arg1 arg2 ...] >>
+
+invoke a I<sibling> program, i.e. a program that is shipped along
+with the selected perl in C<$PERL> and is located in the same
+directory. Any additional argument is provided in the invocation
+of the sibling program.
+
+Note that the invocation of the program is performed through the
+provided C<$PERL>, i.e. it will work correctly for the shipped
+Perl programs, but not for any binary executable.
+
+=item B<< -x | --exec [arg1 arg2 ...] >>
+
+invoke C<$PERL> with the provided arguments, after loading the
+options in C<wrapper.env>.
+
+=back
 
 =head1 DIAGNOSTICS
 
