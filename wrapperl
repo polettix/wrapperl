@@ -146,6 +146,12 @@ wrapperl - wrapper for Perl customized invocation
 
 ... or an example is worth a whole manual sometimes.
 
+First of all, download C<wrapperl> from
+L<https://raw.githubusercontent.com/polettix/wrapperl/master/wrapperl>
+and put somewhere in the environments where you need it. It is not
+necessary to put it in a directory in the C<PATH>, although it is
+suggested in order to access all functionalities.
+
 Let's make a few assumptions:
 
 =over
