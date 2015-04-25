@@ -175,7 +175,7 @@ C<perl> is located at C</home/me/perl/bin/perl>
 
 =item *
 
-the libraries are stored in non-standard positions
+the libraries you need are stored in non-standard positions
 C</path/to/some/lib> and C</path/to/another/lib>
 
 =back
@@ -204,13 +204,13 @@ the libraries you need are all stored in C</approved/lib>
 =back
 
 In both environments, you create a symbolic link named C<prg>
-pointing towards C<wrapperl> and located inside the same directory
-as C<prg.pl>.
+pointing towards C<wrapperl>. The link is located inside the same
+directory as C<prg.pl>.
 
-Inside the same directory, or any ancestor, you create the
-C<wrapperl.env> file, which will be specific for the environment.
-We will put the file in the same directory as C<prg> and C<prg.pl>
-in this example.
+You create the C<wrapperl.env> file, which will hold configurations
+that are specific for the specific environment it is located into.
+In this example we will put it in the same directory as C<prg> and
+C<prg.pl>.
 
 This is what you end up with in the development environment:
 
@@ -234,9 +234,9 @@ This is what you have in the production environment:
    $ENV{PERL5LIB} = '/approved/lib';
    $PERL = '/approved/perl/bin/perl';
 
-So yes, they two setups are mostly the same, except for the
-C<wrapperl.env> file contents that contain the environment-specific
-configurations.
+So yes, they two setups are mostly the same, except for the contents
+of the C<wrapperl.env> files, each containing configurations that
+are environment-specific.
 
 Now, you are ready to run your program in either environment, just
 remember to execute the symbolic link to C<wrapperl> instead of your

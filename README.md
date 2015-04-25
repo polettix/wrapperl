@@ -18,7 +18,7 @@ you don't even want to write one, you can copy and paste this:
 - you do your coding in a development environment where:
     - you develop `prg.pl` inside directory `/home/me/program`
     - `perl` is located at `/home/me/perl/bin/perl`
-    - the libraries are stored in non-standard positions
+    - the libraries you need are stored in non-standard positions
     `/path/to/some/lib` and `/path/to/another/lib`
 - you deploy your program in a production environment with a different
 setup, namely:
@@ -27,13 +27,13 @@ setup, namely:
     - the libraries you need are all stored in `/approved/lib`
 
 In both environments, you create a symbolic link named `prg`
-pointing towards `wrapperl` and located inside the same directory
-as `prg.pl`.
+pointing towards `wrapperl`. The link is located inside the same
+directory as `prg.pl`.
 
-Inside the same directory, or any ancestor, you create the
-`wrapperl.env` file, which will be specific for the environment.
-We will put the file in the same directory as `prg` and `prg.pl`
-in this example.
+You create the `wrapperl.env` file, which will hold configurations
+that are specific for the specific environment it is located into.
+In this example we will put it in the same directory as `prg` and
+`prg.pl`.
 
 This is what you end up with in the development environment:
 
@@ -57,9 +57,9 @@ This is what you have in the production environment:
     $ENV{PERL5LIB} = '/approved/lib';
     $PERL = '/approved/perl/bin/perl';
 
-So yes, they two setups are mostly the same, except for the
-`wrapperl.env` file contents that contain the environment-specific
-configurations.
+So yes, they two setups are mostly the same, except for the contents
+of the `wrapperl.env` files, each containing configurations that
+are environment-specific.
 
 Now, you are ready to run your program in either environment, just
 remember to execute the symbolic link to `wrapperl` instead of your
