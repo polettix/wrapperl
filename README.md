@@ -111,42 +111,7 @@ wrapperl - wrapper for Perl customized invocation
     shell$ wrapperl -d My::Module
     shell$ wrapperl -s perldoc My::Module
 
-# DESCRIPTION
-
-**If you are really in a hurry, go to ["TL;DR"](#tl-dr).** Otherwise,
-read on...
-
-This program lets you wrap a perl program with some local-specific
-configurations.
-
-Why would you do this, e.g. as opposed to modifying the
-_hash-bang_ line or setting `PERL5LIB`, or calling the perl
-executable directly? Well, lazyness of course, but also the fact
-that in different environments the same program might need different
-configurations, and changing those configurations possibly in many
-little Perl programs quickly becomes an error-prone hassle.
-
-`wrapperl` provides you with a consistent, minimal and easy to setup
-way to concentrate local-specific configurations in one single
-file `wrapperl.env` (["The `wrapperl.env` File"](#the-wrapperl-env-file)), and be sure
-that you will call your Perl program(s) with the right setup every time.
-
-`wrapperl`'s behaviour strongly depends on its name. That is, if
-you leave it as `wrapperl` it behaves in a specific way, while
-if you name it differently then it does something else.
-
-The easiest (and most robust) way to do the renaming is to use
-symbolic links, if your filesystem allows you to. Otherwise, nothing
-prevents you from copying `wrapperl` to whatever name you need and
-get the benefits described below.
-
-The following sections start by describing the `wrapperl.env` file
-you should set up, then describe the behaviour in the different
-conditions; among them, most probably you will be interested into
-["Named Something Else"](#named-something-else). But first, something to set you to work
-quickly.
-
-## TL;DR
+# TL;DR
 
 ... or an example is worth a whole manual sometimes.
 
@@ -236,6 +201,38 @@ In the production environment:
     - '.'
 
 That's all folks!
+
+# DESCRIPTION
+
+This program lets you wrap a perl program with some local-specific
+configurations.
+
+Why would you do this, e.g. as opposed to modifying the
+_hash-bang_ line or setting `PERL5LIB`, or calling the perl
+executable directly? Well, lazyness of course, but also the fact
+that in different environments the same program might need different
+configurations, and changing those configurations possibly in many
+little Perl programs quickly becomes an error-prone hassle.
+
+`wrapperl` provides you with a consistent, minimal and easy to setup
+way to concentrate local-specific configurations in one single
+file `wrapperl.env` (["The `wrapperl.env` File"](#the-wrapperl-env-file)), and be sure
+that you will call your Perl program(s) with the right setup every time.
+
+`wrapperl`'s behaviour strongly depends on its name. That is, if
+you leave it as `wrapperl` it behaves in a specific way, while
+if you name it differently then it does something else.
+
+The easiest (and most robust) way to do the renaming is to use
+symbolic links, if your filesystem allows you to. Otherwise, nothing
+prevents you from copying `wrapperl` to whatever name you need and
+get the benefits described below.
+
+The following sections start by describing the `wrapperl.env` file
+you should set up, then describe the behaviour in the different
+conditions; among them, most probably you will be interested into
+["Named Something Else"](#named-something-else). But first, something to set you to work
+quickly.
 
 ## The `wrapperl.env` File
 

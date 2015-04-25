@@ -251,42 +251,7 @@ wrapperl - wrapper for Perl customized invocation
    shell$ wrapperl -d My::Module
    shell$ wrapperl -s perldoc My::Module
 
-=head1 DESCRIPTION
-
-B<< If you are really in a hurry, go to L</TL;DR>. >> Otherwise,
-read on...
-
-This program lets you wrap a perl program with some local-specific
-configurations.
-
-Why would you do this, e.g. as opposed to modifying the
-I<hash-bang> line or setting C<PERL5LIB>, or calling the perl
-executable directly? Well, lazyness of course, but also the fact
-that in different environments the same program might need different
-configurations, and changing those configurations possibly in many
-little Perl programs quickly becomes an error-prone hassle.
-
-C<wrapperl> provides you with a consistent, minimal and easy to setup
-way to concentrate local-specific configurations in one single
-file C<wrapperl.env> (L<< The C<wrapperl.env> File >>), and be sure
-that you will call your Perl program(s) with the right setup every time.
-
-C<wrapperl>'s behaviour strongly depends on its name. That is, if
-you leave it as C<wrapperl> it behaves in a specific way, while
-if you name it differently then it does something else.
-
-The easiest (and most robust) way to do the renaming is to use
-symbolic links, if your filesystem allows you to. Otherwise, nothing
-prevents you from copying C<wrapperl> to whatever name you need and
-get the benefits described below.
-
-The following sections start by describing the C<wrapperl.env> file
-you should set up, then describe the behaviour in the different
-conditions; among them, most probably you will be interested into
-L</Named Something Else>. But first, something to set you to work
-quickly.
-
-=head2 TL;DR
+=head1 TL;DR
 
 ... or an example is worth a whole manual sometimes.
 
@@ -413,6 +378,39 @@ In the production environment:
    - '.'
 
 That's all folks!
+
+
+=head1 DESCRIPTION
+
+This program lets you wrap a perl program with some local-specific
+configurations.
+
+Why would you do this, e.g. as opposed to modifying the
+I<hash-bang> line or setting C<PERL5LIB>, or calling the perl
+executable directly? Well, lazyness of course, but also the fact
+that in different environments the same program might need different
+configurations, and changing those configurations possibly in many
+little Perl programs quickly becomes an error-prone hassle.
+
+C<wrapperl> provides you with a consistent, minimal and easy to setup
+way to concentrate local-specific configurations in one single
+file C<wrapperl.env> (L<< The C<wrapperl.env> File >>), and be sure
+that you will call your Perl program(s) with the right setup every time.
+
+C<wrapperl>'s behaviour strongly depends on its name. That is, if
+you leave it as C<wrapperl> it behaves in a specific way, while
+if you name it differently then it does something else.
+
+The easiest (and most robust) way to do the renaming is to use
+symbolic links, if your filesystem allows you to. Otherwise, nothing
+prevents you from copying C<wrapperl> to whatever name you need and
+get the benefits described below.
+
+The following sections start by describing the C<wrapperl.env> file
+you should set up, then describe the behaviour in the different
+conditions; among them, most probably you will be interested into
+L</Named Something Else>. But first, something to set you to work
+quickly.
 
 
 =head2 The C<wrapperl.env> File
