@@ -6,7 +6,10 @@ branch=$(git branch | sed -n 's/^* //p') &&
 [ "$branch" == "master" ] &&
 pod2markdown wrapperl README.md &&
 git commit README.md -m 'aligned documentation' &&
-contents=$(cat html.preamble README.md html.postamble) &&
+contents=$(
+   cat html.preamble &&
+   kramdown README.md &&
+   cat html.postamble) &&
 git checkout gh-pages &&
 echo "$contents" > index.html &&
 (
