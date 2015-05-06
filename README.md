@@ -97,6 +97,18 @@ In the production environment:
     - '/approved/perl/lib/5.18.1'
     - '.'
 
+One last hint! If you can manage to install `wrapperl` somewhere
+in the `PATH` in all the environments, and your system supports
+the _hash-bang_, you can even avoid to create the symbolic link
+and set the _hash-bang_ to point to `wrapperl` instead. So your
+program would be:
+
+    #!/usr/bin/env wrapperl
+    print "using perl '$^X', \@INC contains:\n";
+    print "- '$_'\n" for @INC;
+
+and you can call it whatever you want.
+
 That's all folks!
 
 # SYNOPSYS
@@ -208,6 +220,25 @@ That's all folks!
     shell$ wrapperl -d My::Module
     shell$ wrapperl -s perldoc My::Module
 
+    # Last, if you manage to install wrapperl somewhere in the PATH
+    # you can spare the symbolic link and use the hash bang directly!
+    shell$ cat hashbanged-program
+    #!/path/to/wrapperl
+    print "using perl $^X\n";
+    print "$_\n" for @INC;
+
+    shell$ ./hashbanged-program
+    using perl '/path/to/bin/perl', @INC contains:
+    - '/path/to/another/lib/i686-linux'
+    - '/path/to/another/lib'
+    - '/path/to/some/lib/i686-linux'
+    - '/path/to/some/lib'
+    - '/path/to/lib/site_perl/5.18.1/i686-linux'
+    - '/path/to/lib/site_perl/5.18.1'
+    - '/path/to/lib/5.18.1/i686-linux'
+    - '/path/to/lib/5.18.1'
+    - '.'
+
 # DESCRIPTION
 
 This program lets you wrap a perl program with some local-specific
@@ -229,10 +260,18 @@ that you will call your Perl program(s) with the right setup every time.
 you leave it as `wrapperl` it behaves in a specific way, while
 if you name it differently then it does something else.
 
-The easiest (and most robust) way to do the renaming is to use
-symbolic links, if your filesystem allows you to. Otherwise, nothing
-prevents you from copying `wrapperl` to whatever name you need and
-get the benefits described below.
+You have several options to do call `wrapperl` with a different name:
+
+- you just copy it with a different name. It works but it's also ugly
+and it will be a hassle every time you want to upgrade (but chances are
+you will not need. so don't worry too much)
+- you create a symbolic link. Works if your filesystem supports them,
+is robust and allows you to avoid touching the main program
+- if you can put `wrapperl` somewhere in the path in all your
+environments, and your system supports the _hash-bang_ system
+(i.e. you're in some Unix-ish system), you can just set it inside
+the main program and avoid having anything more. Very clean and
+suggested if possible!
 
 The following sections start by describing the `wrapperl.env` file
 you should set up, then describe the behaviour in the different
