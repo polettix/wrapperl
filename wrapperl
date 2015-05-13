@@ -21,6 +21,10 @@ our $ME      = absolute($0);
 
 my @alternatives = (
    [qr{(?mxs: \A wrapperl \z)}, \&dispatch_wrapperl],
+   [
+      qr{(?mxs: \A wrap-perl \z)},
+      sub { action_exec(realpath($ARGV[0])) },
+   ],
    [qr{(?mxs: \A perl \z)},     \&action_exec],
    [
       qr{(?mxs: \A perldoc \z)},
@@ -106,7 +110,7 @@ sub action_sibling {
 } ## end sub action_sibling
 
 sub action_exec {
-   load_envfile();
+   load_envfile(@_);
    myexec($PERL, @ARGV);
 }
 
