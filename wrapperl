@@ -21,10 +21,6 @@ our $ME      = absolute($0);
 
 my @alternatives = (
    [qr{(?mxs: \A wrapperl \z)}, \&dispatch_wrapperl],
-   [
-      qr{(?mxs: \A wrap-perl \z)},
-      sub { action_exec(realpath($ARGV[0])) },
-   ],
    [qr{(?mxs: \A perl \z)},     \&action_exec],
    [
       qr{(?mxs: \A perldoc \z)},
@@ -321,13 +317,6 @@ That's all folks!
    shell$ wrapperl -x -le 'print $^X'
    /path/to/bin/perl
 
-   # This is actually the default behaviour if the first parameter
-   # is not supported by "wrapperl" directly, so the following calls
-   # are equivalent. So, use -x if you need to pass the called perl
-   # options -d, -e, -s or -x, otherwise you can avoid it
-   shell$ wrapperl -x myprogram.pl --foo bar # OR
-   shell$ wrapperl myprogram.pl --foo bar
-
    # Option -s | --sibling allows to call programs that are
    # usually shipped with perl, e.g. perlthanks, podchecker, etc.
    shell$ wrapperl -s podchecker myprogram.pl
@@ -337,7 +326,15 @@ That's all folks!
    shell$ wrapperl -s perldoc Module::Name
    shell$ wrapperl -d Module::Name
 
-   # You can symlink wrapperl and it will do some magic.
+   # If the first parameter is not supported by "wrapperl" directly,
+   # it will be considered a perl program to be executed along with
+   # its own parameters. This makes it handy to use wrapperl in
+   # hash-bang setups. The program's *realpath* is also used as the
+   # starting point for searching wrapperl.env, so that symbolic
+   # links to your program should work as expected
+   shell$ wrapperl myprogram.pl --foo bar
+
+   # You can symlink pointing to wrapperl and it will do some magic.
    # Call the real program a name ending with ".pl" (e.g. "prg.pl")
    # and symlink wrapperl with the same name withouth the extension
    # (e.g. "prg"). This is what will happen:
@@ -721,10 +718,11 @@ C<wrapperl.env>. Any argument is provided on the command line is
 passed along to the sibling program. This will thus work fine
 when the sibling is a Perl program, but not for binary executables.
 
-=item B<< -x | --exec [arg1 arg2 ...] >>
+=item B<< -x | --exec program [arg1 arg2 ...] >>
 
-invoke C<$PERL> with the provided arguments, after loading the
-options in C<wrapper.env>.
+invoke C<$PERL> with the provided program and arguments, after loading
+the options in C<wrapper.env>. The C<wrapperl.env> resolution is performed
+starting from the I<realpath> of C<program> (see L</Cwd>).
 
 =back
 
