@@ -129,11 +129,13 @@ sub dispatch_wrapperl {
       shift @ARGV;
       action_sibling();
    }
+   elsif ($first =~ m{\A(?: -x | --exec )\z}mxs) {
+      shift @ARGV;
+      action_exec();
+   }
 
-   # Last chance, we're to act as wrap-perl. Just make sure
-   # get rid of the first parameter if invoked with -x | --exec
-   shift @ARGV if $first =~ m{\A(?: -x | --exec )\z}mxs;
-   action_exec();
+   # Last chance, we're to act as wrap-perl for hash-bang support
+   action_exec(realpath($ARGV[0]));
 } ## end sub dispatch_wrapperl
 
 __END__
