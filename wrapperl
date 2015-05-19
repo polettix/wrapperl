@@ -111,6 +111,8 @@ sub action_exec {
 }
 
 sub dispatch_wrapperl {
+   action_exec() unless @ARGV;
+
    my $first = $ARGV[0] || '';
    if ($first =~ m{\A(?: -e | --env )\z}mxs) {
       shift @ARGV;
@@ -133,6 +135,30 @@ sub dispatch_wrapperl {
    # Last chance, we're to act as wrap-perl for hash-bang support
    action_exec(realpath($ARGV[0]));
 } ## end sub dispatch_wrapperl
+
+### Handy functions for path management in wrapperl.env ###
+
+sub path_child {
+   my ($parent, @child) = @_;
+   my ($v, $d) = ref($parent) ? @$parent : splitpath($parent, 'no-file');
+   my $filename = pop @child;
+   $d = catdir(splitdir($d), @child) if @child;
+   return catpath($v, $d, $filename);
+}
+
+sub path_siblings_list {
+   my $r = shift;
+   my ($v, $d) = splitpath($r);
+   return map {
+      file_name_is_absolute($_) ? $_
+         : path_child([$v, $d], ref($_) ? @$_ : $_);
+   } @_;
+}
+
+sub set_PERL5LIB_from_siblings {
+   my $file = rel2abs((caller(1))[6]);
+   $ENV{PERL5LIB} = join ':', path_siblings_list($file, @_);
+}
 
 __END__
 
