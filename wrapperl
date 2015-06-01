@@ -12,28 +12,28 @@ use File::Spec::Functions qw<
 >;
 use Cwd qw< getcwd realpath >;
 use Pod::Usage qw< pod2usage >;
-my $VERSION = '0.02';
+my $VERSION = '0.03';
 
-our $SUFFIX  = '.pl';
-our $PERLDOC = 'perldoc';
-our $PERL    = $^X;
 our $ME      = absolute($0);
+our $PERL    = $^X;
+our $PERLDOC = 'perldoc';
+our $SUFFIX  = '.pl';
 
 my @alternatives = (
    [qr{(?mxs: \A wrapperl \z)}, \&dispatch_wrapperl],
-   [qr{(?mxs: \A perl \z)},     \&action_exec],
+   [qr{(?mxs: \A perl \z)}, sub { action_exec($ME) }],
    [
       qr{(?mxs: \A perldoc \z)},
       sub {
          unshift @ARGV, $PERLDOC;
-         action_sibling();
+         action_sibling($ME);
       },
    ],
    [
       qr{.},
       sub {
          unshift @ARGV, "$ME$SUFFIX";
-         action_exec();
+         action_exec($ME);
       },
    ],
 );
@@ -138,27 +138,61 @@ sub dispatch_wrapperl {
 
 ### Handy functions for path management in wrapperl.env ###
 
-sub path_child {
-   my ($parent, @child) = @_;
-   my ($v, $d) = ref($parent) ? @$parent : splitpath($parent, 'no-file');
-   my $filename = pop @child;
-   $d = catdir(splitdir($d), @child) if @child;
+# legacy support
+sub set_PERL5LIB_from_siblings {
+   @_ = map {
+      if (ref $_) {
+         my @dirs = @$_;
+         my $file = pop @dirs;
+         @dirs ? catpath('', catdir(@dirs), $file) : $file;
+      }
+      elsif (file_name_is_absolute($_)) {
+         [ $_ ];
+      }
+      else {
+         $_;
+      }
+   } @_;
+   goto \&PERL5LIB;
+}
+
+sub path_sibling {
+   my ($reference, $child) = @_;
+   my ($v, $d) = splitpath($reference);
+   my (undef, $fd, $filename) = splitpath($child);
+   $d = catdir(splitdir($d), splitdir($fd))
+      if defined($fd) && length($fd);
    return catpath($v, $d, $filename);
 }
 
-sub path_siblings_list {
-   my $r = shift;
-   my ($v, $d) = splitpath($r);
-   return map {
-      file_name_is_absolute($_) ? $_
-         : path_child([$v, $d], ref($_) ? @$_ : $_);
+sub PERL5LIB_add {
+   my @items;
+
+   # initialize with current PERL5LIB contents, if any
+   push @items, $ENV{PERL5LIB}
+      if defined($ENV{PERL5LIB}) && length($ENV{PERL5LIB});
+
+   # add items related to this call
+   my $caller_file = rel2abs((caller(1))[6]);
+   push @items, map {
+      ref($_) ? @$_  # plain paths, either relative to PWD or absolute
+         : path_sibling($caller_file, $_);
    } @_;
+
+   # return what's appropriate
+   return unless @items;
+   return $ENV{PERL5LIB} = join ':', @items;
 }
 
-sub set_PERL5LIB_from_siblings {
-   my $file = rel2abs((caller(1))[6]);
-   $ENV{PERL5LIB} = join ':', path_siblings_list($file, @_);
+sub PERL5LIB {
+   delete $ENV{PERL5LIB};
+   goto \&PERL5LIB_add;
 }
+
+sub ME      { our $ME      = shift }
+sub PERL    { our $PERL    = shift }
+sub PERLDOC { our $PERLDOC = shift }
+sub SUFFIX  { our $SUFFIX  = shift }
 
 __END__
 
@@ -170,6 +204,36 @@ __END__
 
 wrapperl - wrapper for Perl customized invocation
 
+=head1 Hurry Up!
+
+   # download in "visible" location
+   cd /usr/bin
+   # alias wget='curl -LO' # in case you need it
+   wget https://raw.githubusercontent.com/polettix/wrapperl/master/wrapperl
+   chmod +x wrapperl 
+
+   # set wrapperl.env for your project. Suppose you have a 'lib' directory
+   # with your stuff inside, and a 'local/lib/perl5' directory with the
+   # local installation of support modules, all inside /path/to/project
+   cd /path/to/project
+   cat > wrapperl.env <<END
+   PERL5LIB(qw< lib local/lib/perl5 >);
+   PERL('/path/to/selected/bin/perl');
+   END
+
+   # start using it, most straightforward way is from hash-bang
+   cat > program.pl <<END
+   #!/usr/bin/env wrapperl
+   print "using perl '$^X', \@INC contains:\n";
+   print "- '$_'\n" for @INC;
+   END
+   ./program.pl
+   # ...
+
+   # you can access docs for locally installed modules
+   wrapperl -d Log::Log4perl::Tiny
+
+
 =head1 TL;DR
 
 ... or an example is worth a whole manual sometimes.
@@ -178,7 +242,8 @@ First of all, download C<wrapperl> from
 L<https://raw.githubusercontent.com/polettix/wrapperl/master/wrapperl>
 and put somewhere in the environments where you need it. It is not
 necessary to put it in a directory in the C<PATH>, although it is
-suggested in order to access all functionalities.
+suggested in order to access all functionalities and it will also be
+assumed in the following of this example.
 
 Let's make a few assumptions:
 
@@ -186,12 +251,24 @@ Let's make a few assumptions:
 
 =item *
 
-you will write your program C<prg.pl>. If
-you don't even want to write one, you can copy and paste this:
+you are in a sane environment where you managed to put C<wrapperl>
+somewhere in your C<PATH> and you have a working C</usr/bin/env> (this
+assumption is not so strong, as you can understand, but will help us
+set a consistent hash-bang)
 
-   #!/usr/bin/env perl
+=item *
+
+you will write your program and we will call it C<prg>. To get the gist
+of C<wrapperl> you can start from this:
+
+   #!/usr/bin/env wrapperl
    print "using perl '$^X', \@INC contains:\n";
    print "- '$_'\n" for @INC;
+
+If you didn't manage to put C<wrapperl> in C<PATH>, or you don't have
+C</usr/bin/env>, just put the path to C<wrapperl> in the I<hash-bang>,
+although you will then need to ensure that this choice will be
+true on all systems
 
 =item *
 
@@ -201,7 +278,7 @@ you do your coding in a development environment where:
 
 =item *
 
-you develop C<prg.pl> inside directory C</home/me/program>
+you develop C<prg> inside directory C</home/me/program>
 
 =item *
 
@@ -209,8 +286,13 @@ C<perl> is located at C</home/me/perl/bin/perl>
 
 =item *
 
-the libraries you need are stored in non-standard positions
-C</path/to/some/lib> and C</path/to/another/lib>
+the modules you develop in association with C<prg> are located in
+sub-directory C<lib>. In addition, you keep a local library of
+support modules in sub-directory C<local/lib/perl5> and you also
+want to include modules from non-standard absolute location
+C</path/to/some/lib> and relative location C<another/lib> with respect
+to where you are calling the program for (you are generally advised
+against this, but the example shows that you can)
 
 =back
 
@@ -231,59 +313,61 @@ C<perl> is located at C</approved/perl/bin/perl>
 
 =item *
 
-the libraries you need are all stored in C</approved/lib>
+you still keep the layout with the C<lib> and C<local/lib/perl5>
+sub-directories, but all system-wide modules you need
+are stored in C</approved/lib>.
 
 =back
 
 =back
 
-In both environments, you create a symbolic link named C<prg>
-pointing towards C<wrapperl>. The link is located inside the same
-directory as C<prg.pl>.
-
-You create the C<wrapperl.env> file, which will hold configurations
+In both environments, you create a C<wrapperl.env> file inside the root
+directory of your project, which will hold configurations
 that are specific for the specific environment it is located into.
-In this example we will put it in the same directory as C<prg> and
-C<prg.pl>.
+In this example we will put it in the same directory as C<prg>.
 
 This is what you end up with in the development environment:
 
    me@devhost /home/me/program$ ls -l
-   lrwxrwxrwx 1 me me  8 Apr 23 22:51 prg -> /home/me/bin/wrapperl
-   -rwxr-xr-x 1 me me 74 Apr 23 22:28 prg.pl
+   -rwxr-xr-x 1 me me 74 Apr 23 22:28 prg
    -rwxr-xr-x 1 me me 90 Apr 22 12:35 wrapperl.env
 
    me@devhost /home/me/program$ cat wrapperl.env
-   $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
-   $PERL = '/home/me/perl/bin/perl';
+   PERL5LIB(
+      qw< lib local/lib/perl5 >, # located as siblings of wrapperl.env
+      [ qw< /path/to/some/lib another/lib > ],    # non-siblings paths
+   );
+   PERL('/home/me/perl/bin/perl');
 
 This is what you have in the production environment:
 
    me@production /app/program$ ls -l
-   lrwxrwxrwx 1 me me  8 Apr 25 20:51 prg -> /usr/local/bin/wrapperl
-   -rwxr-xr-x 1 me me 74 Apr 25 20:51 prg.pl
+   -rwxr-xr-x 1 me me 74 Apr 25 20:51 prg
    -rwxr-xr-x 1 me me 66 Apr 25 20:51 wrapperl.env
 
    me@production /app/program$ cat wrapperl.env
-   $ENV{PERL5LIB} = '/approved/lib';
-   $PERL = '/approved/perl/bin/perl';
+   PERL5LIB(
+      qw< lib local/lib/perl5 >, # located as siblings of wrapperl.env
+      [ qw< /approved/lib > ],   # non-siblings paths
+   );
+   PERL('/approved/perl/bin/perl');
 
 So yes, they two setups are mostly the same, except for the contents
 of the C<wrapperl.env> files, each containing configurations that
-are environment-specific.
+are environment-specific. You should be able to easily guess what the
+two functions C<PERL5LIB> and C<PERL> do.
 
-Now, you are ready to run your program in either environment, just
-remember to execute the symbolic link to C<wrapperl> instead of your
-program.
-
-In the development environment:
+Now, you just execute your program. In the development environment:
 
    me@devhost /home/me/program$ ./prg
    using perl '/home/me/perl/bin/perl', @INC contains:
-   - '/path/to/another/lib/i686-linux'
-   - '/path/to/another/lib'
+   - '/home/me/program/lib'
+   - '/home/me/program/local/lib/perl5/i686-linux'
+   - '/home/me/program/local/lib/perl5'
    - '/path/to/some/lib/i686-linux'
    - '/path/to/some/lib'
+   - '/home/me/program/another/lib/i686-linux'
+   - '/home/me/program/another/lib'
    - '/home/me/perl/lib/site_perl/5.18.1/i686-linux'
    - '/home/me/perl/lib/site_perl/5.18.1'
    - '/home/me/perl/lib/5.18.1/i686-linux'
@@ -294,6 +378,9 @@ In the production environment:
 
    me@production /app/program$ ./prg
    using perl '/approved/perl/bin/perl', @INC contains:
+   - '/app/program/lib'
+   - '/app/program/local/lib/perl5/i686-linux'
+   - '/app/program/local/lib/perl5'
    - '/approved/lib/i686-linux'
    - '/approved/lib'
    - '/approved/perl/lib/site_perl/5.18.1/i686-linux'
@@ -302,28 +389,39 @@ In the production environment:
    - '/approved/perl/lib/5.18.1'
    - '.'
 
-One last hint! If you can manage to install C<wrapperl> somewhere
-in the C<PATH> in all the environments, and your system supports
-the I<hash-bang>, you can even avoid to create the symbolic link
-and set the I<hash-bang> to point to C<wrapperl> instead. So your
-program would be:
+One last hint! If you cannot manage to install C<wrapperl> somewhere
+in the C<PATH> in all the environments, you can either do some shell
+wrapping (but this would somehow make wrapperl slightly overkill
+probably) or use an approach based on symbolic links. If this is the
+case:
 
-   #!/usr/bin/env wrapperl
-   print "using perl '$^X', \@INC contains:\n";
-   print "- '$_'\n" for @INC;
+=over
 
-and you can call it whatever you want.
+=item *
+
+rename your program C<prg> as C<prg.pl>, i.e. ending in suffix C<.pl>
+
+=item *
+
+in the same directory, create a symbolic link named C<prg> and pointing
+to the location of C<wrapperl> (which could be in the very same directory
+if you plan to ship wrapperl as well)
+
+=back
+
+With this setup, when you run the symbolic link, it will just run the
+associated C<.pl> file with the settings in the C<wrapperl.env> file.
 
 That's all folks!
 
 =head1 SYNOPSYS
 
    # Minimal setup: create a "wrapperl.env" file.
-   # It is a Perl program to set up the right environment and
-   # define the $PERL variable that points to the desired perl
+   # It is a Perl program to set up the right environment.
+   # Two handy functions PERL5LIB() and PERL() are all you need usually
    shell$ cat wrapperl.env
-   $ENV{PERL5LIB} = '/path/to/some/lib:/path/to/another/lib';
-   $PERL = '/path/to/bin/perl';
+   PERL5LIB(qw< lib llib > [qw< /path/to/lib /path/to/other/lib >]);
+   PERL('/path/to/bin/perl');
 
    # You can have a different "wrapperl.env" on each directory.
    # What is the one that we would see from here? "wrapperl" can
@@ -348,7 +446,7 @@ That's all folks!
    shell$ wrapperl -s podchecker myprogram.pl
 
    # Another useful option is -d | --doc to call perldoc quickly,
-   # so the following ones are equivalent:
+   # so the following ones are equivalent but the latter is less typing
    shell$ wrapperl -s perldoc Module::Name
    shell$ wrapperl -d Module::Name
 
@@ -429,7 +527,7 @@ That's all folks!
    # Last, if you manage to install wrapperl somewhere in the PATH
    # you can spare the symbolic link and use the hash bang directly!
    shell$ cat hashbanged-program
-   #!/path/to/wrapperl
+   #!/usr/bin/env wrapperl
    print "using perl $^X\n";
    print "$_\n" for @INC;
 
@@ -509,14 +607,56 @@ probably (otherwise you would probably not be using C<wrapperl> at
 all). You can do whatever setting inside it, while most probably you
 will be interested in setting the environment variable C<PERL5LIB>
 to point towards the library directories you want to include in
-C<@INC>.
+C<@INC>, and also set the right Perl executable to use.
 
-You can also affect how C<wrapperl> works by setting the following
-variables in package C<main>:
+You can affect how C<wrapperl> works by calling the following
+functions from within a C<wrapperl.env> file (you should normally
+only need the first two anyway):
 
 =over
 
-=item C<$ME>
+=item B<PERL($path)>
+
+the path to the perl to use for invoking the other programs.
+
+By default it is set to the same perl that is executing C<wrapperl>,
+namely C<$^X>, just in case you need to setup C<PERL5LIB> only.
+
+=item B<PERL5LIB(@items)>
+
+set the environment variable C<PERL5LIB> according to your needs. You
+can pass a list of items, each of which can be:
+
+=over
+
+=item *
+
+a string, that is interpreted as a relative path starting from the
+same directory as where C<wrapperl.env> is put. This allows e.g. to
+make sure you can point towards sub-directories C<lib> and
+C<local/lib/perl5> inside your project's root directory, provided you
+also put C<wrapperl.env> in the same directory
+
+=item *
+
+a reference to an array of strings. These strings are passed unchanged
+in the environment variable, so that you can set either absolute
+paths or paths relative to the current directory.
+
+=back
+
+You should normally need to set paths relative to the root directory
+of your project, this is why it's slightly easier to set them instead
+of absolute paths or paths relative to the current directory.
+
+Any previous value of the environment variable C<PERL5LIB> is wiped
+out, and this is considered a feature. If you really want to preserve
+it somewhere, just pass its value inside a reference to an array like
+this:
+
+   PERL5LIB(..., [$ENV{PERL5LIB}], ...);
+
+=item B<ME($path)>
 
 the location of the original program invoked. When calling C<wrapperl>
 with a different name (see L</Named Something Else>), it is used
@@ -524,28 +664,24 @@ together with C<$SUFFIX> described below to form the name of the
 program C<$ME$SUFFIX> that will be called with the new C<$PERL>. In
 general you should not need to fiddle with this.
 
-=item C<$PERL>
-
-the path to the perl to use for invoking the other programs.
-
-By default it is set to the same perl that is executing C<wrapperl>,
-namely C<$^X>, just in case you need to setup C<PERL5LIB>.
-
-=item C<$PERLDOC>
+=item B<PERLDOC($name)>
 
 The name of the C<perldoc> utility installed along with C<$PERL>.
 
 By default it is set to C<perldoc>, and you probably do not need
 to change it.
 
-=item C<$SUFFIX>
+=item B<SUFFIX($string)>
 
 a suffix that is appended to the name of the invoked program when
 calling C<wrapperl> with a different name (see
-L</Named Something Else>).
+L</Named Something Else>). Makes sense only if you are using the
+symbolic linking method and not the I<hash-bang> approach.
 
-The called program will be C<$ME$SUFFIX>, so if C<$SUFFIX> is set
-to C<.pl>, you are expected to call your I<real> program the same
+Assuming that C<$ME> holds the value set by C<ME()> and C<$SUFFIX>
+the value set by C<SUFFIX>,
+the called program will be C<$ME$SUFFIX>, so if C<$SUFFIX> is
+C<.pl>, you are expected to call your I<real> program the same
 as your symbolic link (or renamed C<wrapperl> program) but with
 C<.pl> appended. Example:
 
@@ -556,10 +692,10 @@ C<.pl> appended. Example:
 If your system is picky about how files should be named (e.g.
 Windows might put some restrictions to what it considers as
 I<executables>), then you can do your transformations directly
-on C<$ME> and set C<$SUFFIX> to the empty string in order to
-select the I<real> program to call.
+using C<ME()> and set C<SUFFIX('')> to the empty string in order
+to select the I<real> program to call.
 
-By default, C<$SUFFIX> is set to C<.pl> and you should not need
+By default, it is set to C<.pl> and you should not need
 to change it.
 
 =back
@@ -612,9 +748,12 @@ Unless otherwise noted, the resolution of the C<wrapperl.env> file
 is the I<standard> one as described in section L</Position>.
 
 If none of the options in L</OPTIONS> is recognized, the selected
-perl in C<$PERL> is invoked with whatever argument list is provided. This
-is equivalent to using the C<-x|--exec> option, except of course that the
-first option is not stripped away in this case.
+perl via C<PERL()> is invoked with whatever argument list is provided. This
+is equivalent to using the C<-x|--exec> option, except that the
+first option is not stripped away in this case and also that the first
+item in the command line list is assumed to be the path to a program and
+its path will be used as the starting position for C<wrapperl.env>
+location resolution.
 
 Option C<-d|--doc> helps you call C<perldoc>, or whatever is set in
 C<$PERLDOC>. This will be useful in order to use the C<perldoc> that is
@@ -637,34 +776,37 @@ that is shipped with the perl you indicated in C<wrapperl.env>:
    shell$ wrapperl -s podchecker
 
 Last, option C<-x|--exec> allows you to call C<$PERL> with the options
-set in C<wrapperl.env>. It is mostly unneeded, unless you want to
-use any of the options above for calling C<$PERL>.
+set in C<wrapperl.env> (where the resolution process starts from the
+current directory or from the C<HOME> directory).
 
 =head2 Named C<perl>
 
-This name makes C<wrapperl> transform into a call to C<$PERL> as
-possibly set by the C<wrapperl.env> file, including any command
-line option provided. The behaviour is the same as calling
-C<wrapperl> with option C<-x|--exec>.
+This name makes C<wrapperl> transform into a call to what set as
+C<PERL()>, including any command line option provided.
 
 The resolution of the C<wrapperl.env> file is performed according to
-the I<standard resolution> process explained in section L</Position>.
+the I<standard resolution> process explained in section L</Position>,
+starting from the location of the symbolic link.
 
 =head2 Named <perldoc>
 
-This name calls the C<perldoc> set in C<$PERLDOC> and located in the
-same directory as C<$PERL>, including any command line option
-provided. The behaviour is the same as calling C<wrapperl> with
-option C<-d|--doc>.
+This name calls the C<perldoc> set via C<PERLDOC()> and located in the
+same directory as what set via C<PERL()>, including any command line
+option provided. The behaviour is the same as calling C<wrapperl> with
+option C<-d|--doc>, with the exception of the resolution process.
 
 The resolution of the C<wrapperl.env> file is performed according to
-the I<standard resolution> process explained in section L</Position>.
+the I<standard resolution> process explained in section L</Position>,
+starting from the location of the symbolic link.
 
 =head2 Named Something Else
 
-The normal usage is intended to ease wrapping a call to your Perl
-program so that the right perl binary with the right libraries is
-used, without sacrificing simplicity.
+If your system(s) have C</usr/bin/env> and you can put C<wrapperl>
+somewhere in the C<PATH>, just set the I<hash-bang> to:
+
+   #!/usr/bin/env wrapperl
+
+and you're done. If not, read on.
 
 Assuming that you have set up your C<wrapperl.env> file (see
 L<< /The C<wrapperl.env> File >>), you are only two steps away from
@@ -677,8 +819,8 @@ setup:
 
 you can write your program without worrying about which perl will
 be used to call it or where the libraries are installed. Your only
-constraint is to name it ending with C<$SUFFIX> or do some magic
-to C<$ME> in C<wrapperl.env> (see L</Contents> for details).
+constraint is to name it ending with what is set for C<SUFFIX()> or
+do some magic using C<ME()> in C<wrapperl.env>.
 
 By default, it suffices that you name your program ending with
 C<.pl>. For example, we will assume that your program is called
@@ -687,7 +829,7 @@ C<prg.pl>.
 =item *
 
 You set up a copy to C<wrapperl> to be called the same as your
-program, but without the C<$SUFFIX>. In the example, your copy
+program, but without the C<SUFFIX>. In the example, your copy
 would be called C<prg>.
 
 To make the copy you don't really have to make a copy! A symbolic
