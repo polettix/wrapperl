@@ -8,7 +8,7 @@ wrapperl - wrapper for Perl customized invocation
     cd /usr/bin
     # alias wget='curl -LO' # in case you need it
     wget https://raw.githubusercontent.com/polettix/wrapperl/master/wrapperl
-    chmod +x wrapperl 
+    chmod +x wrapperl
 
     # set wrapperl.env for your project. Suppose you have a 'lib' directory
     # with your stuff inside, and a 'local/lib/perl5' directory with the
